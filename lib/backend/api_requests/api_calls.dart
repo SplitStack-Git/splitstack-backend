@@ -19,16 +19,35 @@ class CreateCheckoutSessionCall {
     String? successUrl = '',
     String? cancelUrl = '',
   }) async {
-    final ffApiRequestBody = '''
-{
-  "amount_cents": 110,
-  "currency": "aud",
-  "stack_id": "test_stack",
-  "participant_id": "test_participant",
-  "organiser_account_id": "acct_1SjaxF1QGs19ewJB",
-  "success_url": "https://example.com/success",
-  "cancel_url": "https://example.com/cancel"
-}''';
+    // Build JSON body dynamically using actual parameters
+    final requestBodyMap = <String, dynamic>{
+      'amount_cents': amountCents ?? 0,
+      'currency': (currency ?? 'AUD').toLowerCase(),
+      'stack_id': stackId ?? '',
+    };
+    
+    // Only include optional fields if they are provided
+    if (participantId != null && participantId!.isNotEmpty) {
+      requestBodyMap['participant_id'] = participantId!;
+    }
+    if (organiserAccountId != null && organiserAccountId!.isNotEmpty) {
+      requestBodyMap['organiser_account_id'] = organiserAccountId!;
+    }
+    if (successUrl != null && successUrl!.isNotEmpty) {
+      requestBodyMap['success_url'] = successUrl!;
+    }
+    if (cancelUrl != null && cancelUrl!.isNotEmpty) {
+      requestBodyMap['cancel_url'] = cancelUrl!;
+    }
+    
+    final ffApiRequestBody = json.encode(requestBodyMap);
+    
+    // Debug: Log the amount being sent to Stripe
+    if (kDebugMode) {
+      print('Stripe Checkout - Amount: ${amountCents ?? 0} cents (${(amountCents ?? 0) / 100} ${currency ?? 'AUD'})');
+      print('Stripe Checkout - Request Body: $ffApiRequestBody');
+    }
+    
     return ApiManager.instance.makeApiCall(
       callName: 'CreateCheckoutSession',
       apiUrl:

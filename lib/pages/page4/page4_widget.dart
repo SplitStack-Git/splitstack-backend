@@ -1084,20 +1084,29 @@ class _Page4WidgetState extends State<Page4Widget> {
                                                             _model.targetParticipantIndex =
                                                                 participantsIndex;
                                                             safeSetState(() {});
+                                                            
+                                                            // Set payment amount in cents (convert from dollars to cents)
+                                                            final participantAmountCents = 
+                                                                (participantsItem.amount * 100).round();
+                                                            FFAppState().paymentAmountCents = participantAmountCents;
+                                                            
+                                                            // Set stack ID and participant ID
+                                                            if (FFAppState().stackid.isEmpty) {
+                                                              FFAppState().stackid = widget.doc?.id ?? '';
+                                                            }
+                                                            FFAppState().selectedParticipantId = participantsItem.userID ?? '';
+                                                            
                                                             _model.checkoutResponseCopy =
                                                                 await CreateCheckoutSessionCall
                                                                     .call(
                                                               amountCents:
-                                                                  FFAppState()
-                                                                      .paymentAmountCents,
+                                                                  participantAmountCents,
                                                               currency: FFAppState()
                                                                   .paymentCurrency,
                                                               stackId:
-                                                                  FFAppState()
-                                                                      .stackid,
+                                                                  widget.doc?.id ?? '',
                                                               participantId:
-                                                                  FFAppState()
-                                                                      .selectedParticipantId,
+                                                                  participantsItem.userID ?? '',
                                                             );
 
                                                             await Share.share(
@@ -1216,20 +1225,33 @@ class _Page4WidgetState extends State<Page4Widget> {
                                                                       .toList()
                                                                       .cast<
                                                                           ParticipantsStruct>();
+                                                              
+                                                              // Set payment amount in cents (convert from dollars to cents)
+                                                              // e.g., $25.50 -> 2550 cents
+                                                              final participantAmountCents = 
+                                                                  (participantsItem.amount * 100).round();
+                                                              FFAppState().paymentAmountCents = participantAmountCents;
+                                                              
+                                                              // Set stack ID and participant ID if not already set
+                                                              if (FFAppState().stackid.isEmpty) {
+                                                                FFAppState().stackid = widget.doc?.id ?? '';
+                                                              }
+                                                              FFAppState().selectedParticipantId = participantsItem.userID ?? '';
+                                                              
                                                               safeSetState(
                                                                   () {});
                                                               _model.checkoutResponse =
                                                                   await CreateCheckoutSessionCall
                                                                       .call(
                                                                 amountCents:
-                                                                    FFAppState()
-                                                                        .paymentAmountCents,
+                                                                    participantAmountCents,
                                                                 currency:
                                                                     FFAppState()
                                                                         .paymentCurrency,
                                                                 stackId:
-                                                                    FFAppState()
-                                                                        .stackid,
+                                                                    widget.doc?.id ?? '',
+                                                                participantId:
+                                                                    participantsItem.userID ?? '',
                                                               );
 
                                                               await Share.share(

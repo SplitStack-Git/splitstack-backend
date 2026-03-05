@@ -5,7 +5,7 @@ if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(
       JSON.parse(
-  Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY, 'base64').toString('utf8')
+  Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, 'base64').toString('utf8')
 )
     ),
   });
@@ -15,11 +15,25 @@ const db = admin.firestore();
 
 module.exports = async (req, res) => {
   try {
-    const { userId, email } = req.body;
+    const { userId } = req.body;
 
-    if (!userId || !email) {
-      return res.status(400).json({ error: 'Missing userId or email' });
-    }
+    if (!userId) {
+  return res.status(400).json({ error: 'Missing userId' });
+}
+
+// Load user from Firestore
+const userSnap = await db.collection('users').doc(userId).get();
+
+if (!userSnap.exists) {
+  return res.status(404).json({ error: 'User not found' });
+}
+
+const userData = userSnap.data();
+const email = userData.email;
+
+if (!email) {
+  return res.status(400).json({ error: 'User email missing in database' });
+}
 
     // 1️⃣ Create Stripe Connect Custom account
     const account = await stripe.accounts.create({

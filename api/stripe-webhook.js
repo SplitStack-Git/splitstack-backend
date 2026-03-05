@@ -4,7 +4,7 @@ const Stripe = require("stripe");
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(
     Buffer.from(
-      process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
+      process.env.FIREBASE_SERVICE_ACCOUNT_B64,
       "base64"
     ).toString("utf8")
   );

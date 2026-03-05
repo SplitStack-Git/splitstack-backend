@@ -1,2 +1,4 @@
 .vercel
 .env*.local
+firebase-service-account.json
+firebase-service-account.b64

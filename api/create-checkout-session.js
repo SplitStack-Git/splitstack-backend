@@ -7,8 +7,8 @@ const Stripe = require('stripe');
 function initFirebaseAdmin() {
   if (admin.apps.length) return;
 
-  const base64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
-  if (!base64) throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_BASE64");
+  const base64 = process.env.FIREBASE_SERVICE_ACCOUNT_B64;
+  if (!base64) throw new Error("Missing FIREBASE_SERVICE_ACCOUNT_B64");
 
   const json = Buffer.from(base64, "base64").toString("utf8");
   const serviceAccount = JSON.parse(json);

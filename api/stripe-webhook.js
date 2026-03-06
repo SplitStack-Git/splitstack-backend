@@ -95,6 +95,55 @@ if (event.type === "account.updated") {
   });
 
   console.log("Participant marked paid:", participant_id);
+
+/* TRANSFER TO ORGANISER */
+
+const participant = participantSnap.data();
+
+const stackSnap = await db
+  .collection("stacks")
+  .doc(participant.stack_id)
+  .get();
+
+if (!stackSnap.exists) {
+  console.log("Stack not found:", participant.stack_id);
+  return res.json({ received: true });
+}
+
+const stack = stackSnap.data();
+
+const organiserSnap = await db
+  .collection("users")
+  .doc(stack.organiser_user_id)
+  .get();
+
+if (!organiserSnap.exists) {
+  console.log("Organiser not found");
+  return res.json({ received: true });
+}
+
+const organiser = organiserSnap.data();
+
+if (!organiser.stripe_account_id) {
+  console.log("Organiser has no Stripe account");
+  return res.json({ received: true });
+}
+
+const transfer = await stripe.transfers.create({
+  amount: participant.amount_original_share_cents,
+  currency: participant.currency || "aud",
+  destination: organiser.stripe_account_id,
+  metadata: {
+    participant_id,
+    stack_id: participant.stack_id
+  }
+});
+
+await participantRef.update({
+  transfer_id: transfer.id
+});
+
+console.log("Transfer created:", transfer.id);
 }
 
   res.json({ received: true });

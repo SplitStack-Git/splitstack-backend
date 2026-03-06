@@ -65,7 +65,7 @@ module.exports = async (req, res) => {
 
     const participant = participantSnap.data();
 
-    // Load stack (stack_id is a Firestore DocumentReference)
+    // Load stack (stack_id is a DocumentReference)
     const stackRef = participant.stack_id;
     const stackSnap = await stackRef.get();
 
@@ -76,7 +76,7 @@ module.exports = async (req, res) => {
     const stack = stackSnap.data();
 
     // Load organiser
-    const organiserRef = db.collection('users').doc(String(stack.organiser_user_id));
+    const organiserRef = db.collection('users').doc(String(stack.organiser_id));
     const organiserSnap = await organiserRef.get();
 
     if (!organiserSnap.exists) {
@@ -117,7 +117,7 @@ module.exports = async (req, res) => {
       metadata: {
         participant_id: String(participant_id),
         stack_id: participant.stack_id.id,
-        organiser_user_id: String(stack.organiser_user_id),
+        organiser_user_id: String(stack.organiser_id),
         amount_original_share_cents: String(participant.amount_original_share_cents)
       },
 
@@ -125,7 +125,6 @@ module.exports = async (req, res) => {
       cancel_url: 'https://splitstack.com/cancel',
     });
 
-    // Save checkout session ID
     await participantRef.update({
       checkout_session_id: session.id
     });

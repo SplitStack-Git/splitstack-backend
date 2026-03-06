@@ -30,6 +30,7 @@ async function readJsonBody(req) {
 }
 
 module.exports = async (req, res) => {
+
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -64,8 +65,8 @@ module.exports = async (req, res) => {
 
     const participant = participantSnap.data();
 
-    // Load stack
-    const stackRef = db.collection('stacks').doc(String(participant.stack_id));
+    // Load stack (stack_id is a Firestore DocumentReference)
+    const stackRef = participant.stack_id;
     const stackSnap = await stackRef.get();
 
     if (!stackSnap.exists) {
@@ -115,7 +116,7 @@ module.exports = async (req, res) => {
 
       metadata: {
         participant_id: String(participant_id),
-        stack_id: String(participant.stack_id),
+        stack_id: participant.stack_id.id,
         organiser_user_id: String(stack.organiser_user_id),
         amount_original_share_cents: String(participant.amount_original_share_cents)
       },
@@ -141,4 +142,5 @@ module.exports = async (req, res) => {
     });
 
   }
+
 };

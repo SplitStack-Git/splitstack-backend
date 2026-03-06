@@ -12,12 +12,11 @@ function initFirebaseAdmin() {
   const json = Buffer.from(base64, "base64").toString("utf8");
   const serviceAccount = JSON.parse(json);
 
-serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
 
-console.log("PROJECT:", serviceAccount.project_id);
   admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+    credential: admin.credential.cert(serviceAccount)
+  });
 }
 
 async function readJsonBody(req) {

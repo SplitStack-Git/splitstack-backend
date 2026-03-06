@@ -86,29 +86,7 @@ module.exports = async (req, res) => {
 
     const stack = stackSnap.data();
 
-    // -------------------------
-    // Load organiser
-    // -------------------------
-
-    const organiserId = stack.organiser_id;
-
-    if (!organiserId) {
-      return res.status(400).json({ error: 'Stack missing organiser_id' });
-    }
-
-    const organiserRef = db.collection('users').doc(String(organiserId));
-    const organiserSnap = await organiserRef.get();
-
-    if (!organiserSnap.exists) {
-      return res.status(404).json({ error: 'Organiser not found' });
-    }
-
-    const organiser = organiserSnap.data();
-    const stripeAccountId = organiser.stripe_account_id;
-
-    if (!stripeAccountId) {
-      return res.status(400).json({ error: 'Organiser has no Stripe account' });
-    }
+    const organiserId = participant.userID;
 
     // -------------------------
     // Payment details

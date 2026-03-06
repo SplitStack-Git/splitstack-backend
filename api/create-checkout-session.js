@@ -55,7 +55,10 @@ module.exports = async (req, res) => {
 
     const db = admin.firestore();
 
-    // Load participant
+    // -------------------------
+    // LOAD PARTICIPANT
+    // -------------------------
+
     const participantRef = db.collection('participants').doc(String(participant_id));
     const participantSnap = await participantRef.get();
 
@@ -65,8 +68,16 @@ module.exports = async (req, res) => {
 
     const participant = participantSnap.data();
 
-    // Load stack (stack_id is a DocumentReference)
+    // -------------------------
+    // LOAD STACK (DocumentReference)
+    // -------------------------
+
     const stackRef = participant.stack_id;
+
+    if (!stackRef) {
+      return res.status(400).json({ error: 'Participant missing stack reference' });
+    }
+
     const stackSnap = await stackRef.get();
 
     if (!stackSnap.exists) {
@@ -75,8 +86,17 @@ module.exports = async (req, res) => {
 
     const stack = stackSnap.data();
 
-    // Load organiser
-    const organiserRef = db.collection('users').doc(String(stack.organiser_id));
+    // -------------------------
+    // LOAD ORGANISER
+    // -------------------------
+
+    const organiserUserId = stack.organiser_id;
+
+    if (!organiserUserId) {
+      return res.status(400).json({ error: 'Stack missing organiser_id' });
+    }
+
+    const organiserRef = db.collection('users').doc(String(organiserUserId));
     const organiserSnap = await organiserRef.get();
 
     if (!organiserSnap.exists) {
@@ -90,12 +110,20 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'Organiser has no Stripe account' });
     }
 
+    // -------------------------
+    // PAYMENT DETAILS
+    // -------------------------
+
     const currency = (participant.currency || stack.currency || 'aud').toLowerCase();
     const unitAmount = participant.amount_to_pay_cents;
 
     if (!unitAmount) {
       return res.status(400).json({ error: 'Participant amount missing' });
     }
+
+    // -------------------------
+    // CREATE STRIPE SESSION
+    // -------------------------
 
     const session = await stripe.checkout.sessions.create({
 
@@ -116,8 +144,8 @@ module.exports = async (req, res) => {
 
       metadata: {
         participant_id: String(participant_id),
-        stack_id: participant.stack_id.id,
-        organiser_user_id: String(stack.organiser_id),
+        stack_id: stackRef.id,
+        organiser_user_id: organiserUserId,
         amount_original_share_cents: String(participant.amount_original_share_cents)
       },
 

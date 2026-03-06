@@ -16,9 +16,8 @@ serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
 
 console.log("PROJECT:", serviceAccount.project_id);
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    projectId: serviceAccount.project_id,
-  });
+  credential: admin.credential.cert(serviceAccount)
+});
 }
 
 async function readJsonBody(req) {

@@ -56,7 +56,7 @@ module.exports = async (req, res) => {
     const db = admin.firestore();
 
     // -------------------------
-    // LOAD PARTICIPANT
+    // Load participant
     // -------------------------
 
     const participantRef = db.collection('participants').doc(String(participant_id));
@@ -69,7 +69,7 @@ module.exports = async (req, res) => {
     const participant = participantSnap.data();
 
     // -------------------------
-    // LOAD STACK (DocumentReference)
+    // Load stack (DocumentReference)
     // -------------------------
 
     const stackRef = participant.stack_id;
@@ -87,16 +87,16 @@ module.exports = async (req, res) => {
     const stack = stackSnap.data();
 
     // -------------------------
-    // LOAD ORGANISER
+    // Load organiser
     // -------------------------
 
-    const organiserUserId = stack.organiser_id;
+    const organiserId = stack.organiser_id;
 
-    if (!organiserUserId) {
+    if (!organiserId) {
       return res.status(400).json({ error: 'Stack missing organiser_id' });
     }
 
-    const organiserRef = db.collection('users').doc(String(organiserUserId));
+    const organiserRef = db.collection('users').doc(String(organiserId));
     const organiserSnap = await organiserRef.get();
 
     if (!organiserSnap.exists) {
@@ -111,7 +111,7 @@ module.exports = async (req, res) => {
     }
 
     // -------------------------
-    // PAYMENT DETAILS
+    // Payment details
     // -------------------------
 
     const currency = (participant.currency || stack.currency || 'aud').toLowerCase();
@@ -122,7 +122,7 @@ module.exports = async (req, res) => {
     }
 
     // -------------------------
-    // CREATE STRIPE SESSION
+    // Create Stripe session
     // -------------------------
 
     const session = await stripe.checkout.sessions.create({
@@ -145,7 +145,7 @@ module.exports = async (req, res) => {
       metadata: {
         participant_id: String(participant_id),
         stack_id: stackRef.id,
-        organiser_user_id: organiserUserId,
+        organiser_id: String(organiserId),
         amount_original_share_cents: String(participant.amount_original_share_cents)
       },
 
@@ -153,6 +153,7 @@ module.exports = async (req, res) => {
       cancel_url: 'https://splitstack.com/cancel',
     });
 
+    // Save checkout session
     await participantRef.update({
       checkout_session_id: session.id
     });

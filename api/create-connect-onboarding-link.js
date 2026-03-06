@@ -42,8 +42,8 @@ module.exports = async (req, res) => {
     });
 
     return res.status(200).json({
-      onboarding_url: accountLink.url,
-    });
+  onboardingurl: accountLink.url,
+});
 
   } catch (err) {
     console.error(err);

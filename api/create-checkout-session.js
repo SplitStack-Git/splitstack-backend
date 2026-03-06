@@ -11,7 +11,7 @@ function initFirebaseAdmin() {
 
   const json = Buffer.from(base64, "base64").toString("utf8");
   const serviceAccount = JSON.parse(json);
-
+console.log("PROJECT:", serviceAccount.project_id);
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
     projectId: serviceAccount.project_id,

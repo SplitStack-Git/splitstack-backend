@@ -89,10 +89,12 @@ if (event.type === "account.updated") {
   }
 
   await participantRef.update({
-    status: "paid",
-    payment_intent_id: session.payment_intent,
-    paid_at: admin.firestore.FieldValue.serverTimestamp(),
-  });
+  status: "paid",
+  paid_status: true,
+  pendingPayment: false,
+  payment_intent_id: session.payment_intent,
+  paid_at: admin.firestore.FieldValue.serverTimestamp(),
+});
 
   console.log("Participant marked paid:", participant_id);
 

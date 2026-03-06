@@ -70,13 +70,32 @@ if (event.type === "account.updated") {
 }
 
   if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
+  const session = event.data.object;
 
-    const stack_id = session.metadata?.stack_id;
-    const participant_id = session.metadata?.participant_id;
+  const participant_id = session.metadata?.participant_id;
 
-    console.log("PAID:", { stack_id, participant_id });
+  if (!participant_id) {
+    console.log("Missing participant_id in metadata");
+    return res.json({ received: true });
   }
+
+  const participantRef = db.collection("participants").doc(participant_id);
+
+  const participantSnap = await participantRef.get();
+
+  if (!participantSnap.exists) {
+    console.log("Participant not found:", participant_id);
+    return res.json({ received: true });
+  }
+
+  await participantRef.update({
+    status: "paid",
+    payment_intent_id: session.payment_intent,
+    paid_at: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  console.log("Participant marked paid:", participant_id);
+}
 
   res.json({ received: true });
 };

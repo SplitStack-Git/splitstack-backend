@@ -88,6 +88,13 @@ if (event.type === "account.updated") {
     return res.json({ received: true });
   }
 
+const participant = participantSnap.data();
+
+if (participant.paid_status === true) {
+  console.log("Participant already processed:", participant_id);
+  return res.json({ received: true });
+}
+
   await participantRef.update({
   paid_status: true,
   payment_intent_id: session.payment_intent,

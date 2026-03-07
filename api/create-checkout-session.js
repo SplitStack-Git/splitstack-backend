@@ -68,6 +68,12 @@ module.exports = async (req, res) => {
 
     const participant = participantSnap.data();
 
+if (participant.paid_status === true) {
+  return res.status(400).json({
+    error: "Participant already paid"
+  });
+}
+
     // -------------------------
     // Load stack (DocumentReference)
     // -------------------------

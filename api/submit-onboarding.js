@@ -90,7 +90,27 @@ module.exports = async (req, res) => {
     // UPDATE STRIPE ACCOUNT
     // -------------------------
 
-    await stripe.accounts.update(stripeAccountId, {
+     let accountId = stripeAccountId;
+
+if (!accountId) {
+  const account = await stripe.accounts.create({
+    type: 'custom',
+    country: 'AU',
+    email: onbEmail,
+    capabilities: {
+      card_payments: { requested: true },
+      transfers: { requested: true },
+    },
+  });
+
+  accountId = account.id;
+
+  // SAVE THIS TO FIRESTORE (IMPORTANT)
+  await organiserRef.update({
+    stripe_account_id: accountId,
+  });
+}   
+      await stripe.accounts.update(accountId, {
       business_type: 'individual',
 
       capabilities: {

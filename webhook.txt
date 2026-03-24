@@ -16,35 +16,10 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-/* HELPER — SAFE TRANSFER ATTEMPT */
-
-async function tryTransfer(stripe, participant, organiser, stackRef) {
-  try {
-    console.log("🚀 Attempting transfer...");
-
-    const transfer = await stripe.transfers.create({
-      amount: Math.round(Number(participant.amount) * 100),
-      currency: "aud",
-      destination: organiser.stripe_account_id,
-      metadata: {
-        participant_id: participant.id,
-        stack_id: stackRef.id,
-      },
-    });
-
-    console.log("✅ Transfer success:", transfer.id);
-
-    return { success: true, transferId: transfer.id };
-
-  } catch (err) {
-    console.log("❌ Transfer failed (likely too early):", err.code);
-    return { success: false };
-  }
-}
-
 /* WEBHOOK HANDLER */
 
 module.exports = async (req, res) => {
+
   console.log("🔥 WEBHOOK HIT");
 
   if (req.method !== "POST") {
@@ -56,7 +31,9 @@ module.exports = async (req, res) => {
   try {
     const sig = req.headers["stripe-signature"];
 
+    // ✅ THIS IS THE CRITICAL FIX FOR VERCEL
     const chunks = [];
+
     for await (const chunk of req) {
       chunks.push(chunk);
     }
@@ -74,16 +51,43 @@ module.exports = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  /* DEBUG LOG */
-
+  /* DEBUG WRITE (PROVES FIRESTORE WORKS) */
   await db.collection("debug").add({
     event_type: event.type,
-    created_at: admin.firestore.FieldValue.serverTimestamp(),
+    created_at: admin.firestore.FieldValue.serverTimestamp()
   });
+
+  /* CONNECT ACCOUNT UPDATE */
+
+  if (event.type === "account.updated") {
+
+    const account = event.data.object;
+
+    const snapshot = await db
+      .collection("users")
+      .where("stripe_account_id", "==", account.id)
+      .get();
+
+    if (!snapshot.empty) {
+
+      const userDoc = snapshot.docs[0];
+
+      await userDoc.ref.update({
+        charges_enabled: account.charges_enabled,
+        payouts_enabled: account.payouts_enabled,
+        connect_onboarded: account.charges_enabled && account.payouts_enabled,
+        stripe_payouts_enabled: account.payouts_enabled,
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      console.log("✅ Account updated:", account.id);
+    }
+  }
 
   /* PAYMENT COMPLETED */
 
   if (event.type === "checkout.session.completed") {
+
     const session = event.data.object;
 
     const participant_id = session.metadata?.participant_id;
@@ -103,21 +107,12 @@ module.exports = async (req, res) => {
 
     const participant = participantSnap.data();
 
+    /* PREVENT DUPLICATES */
+
     if (participant.paid_status === true) {
       console.log("⚠️ Already paid:", participant_id);
       return res.json({ received: true });
     }
-
-    /* 🔥 GET PAYMENT INTENT + CHARGE */
-
-    const paymentIntent = await stripe.paymentIntents.retrieve(
-      session.payment_intent
-    );
-
-    const chargeId = paymentIntent.latest_charge;
-
-    console.log("🔥 PAYMENT INTENT:", session.payment_intent);
-    console.log("🔥 CHARGE ID:", chargeId);
 
     /* MARK PAID */
 
@@ -125,7 +120,6 @@ module.exports = async (req, res) => {
       paid_status: true,
       pendingPayment: false,
       payment_intent_id: session.payment_intent,
-      charge_id: chargeId, // ✅ THIS IS THE FIX
       paid_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -148,63 +142,79 @@ module.exports = async (req, res) => {
       return res.json({ received: true });
     }
 
-    /* LOAD ORGANISER */
+    const stack = stackSnap.data();
+/* LOAD ORGANISER (CORRECT + STRICT) */
 
-    const organiserQuery = await db
-      .collection("participants")
-      .where("stack_id", "==", stackRef)
-      .where("isOrganiser", "==", true)
-      .limit(1)
-      .get();
+let organiser = null;
 
-    if (organiserQuery.empty) {
-      console.log("❌ Organiser not found");
-      return res.json({ received: true });
-    }
+const organiserQuery = await db
+  .collection("participants")
+  .where("stack_id", "==", stackRef)
+  .where("isOrganiser", "==", true)
+  .limit(1)
+  .get();
 
-    const organiserDoc = organiserQuery.docs[0];
-    const organiser = organiserDoc.data();
+if (organiserQuery.empty) {
+  console.log("❌ No organiser participants found at all");
+  return res.json({ received: true });
+}
 
-    console.log("✅ Organiser found:", organiser.display_name);
+// Match correct stack
+for (const doc of organiserQuery.docs) {
+  const data = doc.data();
 
-    /* VALIDATION */
+  let match = false;
 
-    if (!organiser.stripe_account_id) {
-      console.log("❌ Missing organiser Stripe account");
-      return res.json({ received: true });
-    }
-
-    if (!organiser.stripe_payouts_enabled) {
-      console.log("❌ Payouts not enabled");
-      return res.json({ received: true });
-    }
-
-    /* MARK TRANSFER PENDING */
-
-    await participantRef.update({
-      transfer_pending: true,
-    });
-
-    /* DELAYED TRANSFER ATTEMPT */
-
-    setTimeout(async () => {
-      const result = await tryTransfer(
-        stripe,
-        { ...participant, id: participantRef.id },
-        organiser,
-        stackRef
-      );
-
-      if (result.success) {
-        await participantRef.update({
-          transfer_id: result.transferId,
-          transfer_pending: false,
-        });
-      } else {
-        console.log("⏳ Transfer not ready yet — will retry later");
-      }
-    }, 15000);
+  if (typeof data.stack_id === "string") {
+    match = data.stack_id.includes(stackRef.id);
+  } else if (data.stack_id && data.stack_id.id) {
+    match = data.stack_id.id === stackRef.id;
   }
 
+  if (match) {
+    organiser = data;
+    break;
+  }
+}
+
+if (!organiser) {
+  console.log("❌ Organiser not found for this stack");
   return res.json({ received: true });
+}
+
+console.log("✅ Organiser found:", organiser.display_name);
+console.log("Organiser FULL DATA:", organiser);
+console.log("Stripe Account ID:", organiser.stripe_account_id);
+console.log("Stripe Enabled:", organiser.stripe_payouts_enabled);
+
+// VALIDATION
+if (!organiser.stripe_account_id) {
+  console.log("❌ No Stripe account on organiser");
+  return res.json({ received: true });
+}
+
+if (!organiser.stripe_payouts_enabled) {
+  console.log("❌ Payouts not enabled on organiser");
+  return res.json({ received: true });
+}
+
+// CREATE TRANSFER
+const transfer = await stripe.transfers.create({
+  amount: Math.round(Number(participant.amount) * 100),
+  currency: stack.currency || "aud",
+  destination: organiser.stripe_account_id,
+  metadata: {
+    participant_id,
+    stack_id: stackRef.id,
+  },
+});
+
+await participantRef.update({
+  transfer_id: transfer.id,
+});
+
+console.log("✅ Transfer created:", transfer.id);
+}
+
+return res.json({ received: true });
 };

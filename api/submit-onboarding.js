@@ -97,17 +97,17 @@ module.exports = async (req, res) => {
           city: onbCity,
           state: onbState,
           postal_code: onbPostcode,
-          country: onbCountry || 'AU',
+          country: 'AU',
         },
       },
 
       external_account: {
         object: 'bank_account',
-        country: onbCountry || 'AU',
+        country: 'AU',
         currency: 'aud',
         account_holder_name: onbAccountHolderName,
         account_holder_type: 'individual',
-        routing_number: onbBsb,
+        routing_number: (onbBsb || '').replace(/\D/g, ''),
         account_number: onbAccountNumber,
       },
 
@@ -125,18 +125,6 @@ module.exports = async (req, res) => {
     });
 
     const account = await stripe.accounts.retrieve(stripeAccountId);
-
-    if (!account.details_submitted) {
-      return res.status(400).json({
-        error: 'Stripe onboarding incomplete',
-      });
-    }
-
-    if (!account.capabilities || account.capabilities.transfers !== 'active') {
-      return res.status(400).json({
-        error: 'Payout capability not active yet',
-      });
-    }
 
     await userRef.update({
       name: [onbFirstName, onbLastName].filter(Boolean).join(' ').trim(),
@@ -158,11 +146,12 @@ module.exports = async (req, res) => {
       stripe_account_id: stripeAccountId,
     });
 
-  } catch (err) {
-    console.error('submit-onboarding error:', err);
+} catch (err) {
+  console.error('submit-onboarding error:', err);
+  console.error('Stripe error (raw):', err?.raw);
+  console.error('Stripe error (full):', JSON.stringify(err, null, 2));
 
-    return res.status(500).json({
-      error: err.message || 'Failed to submit onboarding',
-    });
-  }
-};
+  return res.status(500).json({
+    error: err?.raw?.message || err.message || 'Failed to submit onboarding',
+  });
+}

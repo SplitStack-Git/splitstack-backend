@@ -68,6 +68,11 @@ module.exports = async (req, res) => {
 
     const participant = participantSnap.data();
 
+    // 🔥 FORCE CORRECT ID FROM FIRESTORE
+    const participantDocId = participantRef.id;
+
+    console.log("✅ USING PARTICIPANT ID:", participantDocId);
+
     if (participant.paid_status === true) {
       return res.status(400).json({ error: 'Participant already paid' });
     }
@@ -96,7 +101,6 @@ module.exports = async (req, res) => {
 
     const currency = (participant.currency || stack.currency || 'aud').toLowerCase();
 
-    // Use cents safely
     let unitAmount = participant.amount_to_pay_cents;
 
     if (!unitAmount) {
@@ -129,8 +133,10 @@ module.exports = async (req, res) => {
         }
       ],
       metadata: {
-        participant_id: String(participant_id),
-        stack_id: stackRef.id
+        participant_id: participantDocId, // 🔥 FIXED
+        stack_id: stackRef.id,
+        organiser_id: stack.organiser_id || '', // safe fallback
+        amount_original_share_cents: String(unitAmount)
       },
       success_url: 'https://splitstack.com/success?session_id={CHECKOUT_SESSION_ID}',
       cancel_url: 'https://splitstack.com/cancel'
@@ -145,14 +151,14 @@ module.exports = async (req, res) => {
     });
 
     // -------------------------
-    // RETURN (THIS FIXES NULL)
+    // RETURN
     // -------------------------
 
     return res.status(200).json({
-  checkoutUrl: session.url,
-  checkout_url: session.url,
-  url: session.url
-});
+      checkoutUrl: session.url,
+      checkout_url: session.url,
+      url: session.url
+    });
 
   } catch (err) {
 

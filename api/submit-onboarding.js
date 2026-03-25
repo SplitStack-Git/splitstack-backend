@@ -18,8 +18,53 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+
+// ✅ GLOBAL PHONE FORMATTER (E.164)
+function formatPhone(phone, country) {
+  if (!phone) return phone;
+
+  const cleaned = phone.replace(/\D/g, "");
+
+  if (phone.startsWith("+")) return phone;
+
+  switch (country) {
+    case "AU":
+      return cleaned.startsWith("0") ? "+61" + cleaned.slice(1) : "+61" + cleaned;
+
+    case "US":
+    case "CA":
+      return "+1" + cleaned;
+
+    case "GB":
+      return cleaned.startsWith("0") ? "+44" + cleaned.slice(1) : "+44" + cleaned;
+
+    case "NZ":
+      return cleaned.startsWith("0") ? "+64" + cleaned.slice(1) : "+64" + cleaned;
+
+    case "IE":
+      return cleaned.startsWith("0") ? "+353" + cleaned.slice(1) : "+353" + cleaned;
+
+    case "SG":
+      return "+65" + cleaned;
+
+    case "NL":
+      return cleaned.startsWith("0") ? "+31" + cleaned.slice(1) : "+31" + cleaned;
+
+    case "DE":
+      return cleaned.startsWith("0") ? "+49" + cleaned.slice(1) : "+49" + cleaned;
+
+    case "FR":
+      return cleaned.startsWith("0") ? "+33" + cleaned.slice(1) : "+33" + cleaned;
+
+    default:
+      return "+" + cleaned;
+  }
+}
+
+
 export default async function handler(req, res) {
-console.log("🔥 SUBMIT ONBOARDING HIT");
+  console.log("🔥 SUBMIT ONBOARDING HIT");
+  console.log("BODY:", req.body);
 
   try {
     const {
@@ -41,46 +86,77 @@ console.log("🔥 SUBMIT ONBOARDING HIT");
       onbUsage,
     } = req.body;
 
+    // ✅ Validate
     if (!userId) {
-      return res.status(400).json({ status: "error", message: "Missing userId" });
+      console.error("❌ Missing userId");
+      return res.status(400).json({
+        status: "error",
+        message: "Missing userId",
+      });
     }
 
     const userRef = db.collection("users").doc(userId);
     const userSnap = await userRef.get();
 
     if (!userSnap.exists) {
-      return res.status(404).json({ status: "error", message: "User not found" });
+      return res.status(404).json({
+        status: "error",
+        message: "User not found",
+      });
     }
 
-    let stripeAccountId = userSnap.data().stripe_account_id;
+    let stripeAccountId = userSnap.data().stripe_account_id || null;
 
-    // Create Stripe account if not exists
+    // ✅ CREATE STRIPE ACCOUNT (ONLY IF NONE EXISTS)
     if (!stripeAccountId) {
+      console.log("🔥 Creating Stripe account...");
+
       const account = await stripe.accounts.create({
         type: "custom",
-        country: "AU",
+        country: onbCountry || "AU", // ✅ FIXED
         email: onbEmail,
+        business_type: "individual",
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
       });
 
       stripeAccountId = account.id;
+
+      console.log("✅ Stripe account created:", stripeAccountId);
 
       await userRef.update({
         stripe_account_id: stripeAccountId,
       });
     }
 
-    // Update Stripe account
-    await stripe.accounts.update(stripeAccountId, {
+    // ✅ ALWAYS UPDATE PARTICIPANTS (ORGANISER)
+    const participantsSnap = await db
+      .collection("participants")
+      .where("userID", "==", userId)
+      .where("isOrganiser", "==", true)
+      .get();
+
+    console.log("👀 Organiser docs found:", participantsSnap.size);
+
+    for (const doc of participantsSnap.docs) {
+      await doc.ref.update({
+        stripe_account_id: stripeAccountId,
+      });
+    }
+
+    // ✅ FORMAT PHONE HERE
+    const formattedPhone = formatPhone(onbPhone, onbCountry);
+
+    // ✅ BUILD UPDATE OBJECT
+    const updatePayload = {
       business_type: "individual",
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
       individual: {
         first_name: onbFirstName,
         last_name: onbLastName,
         email: onbEmail,
-        phone: onbPhone,
+        phone: formattedPhone, // ✅ FIXED
         dob: {
           day: new Date(onbDob).getDate(),
           month: new Date(onbDob).getMonth() + 1,
@@ -95,7 +171,11 @@ console.log("🔥 SUBMIT ONBOARDING HIT");
           country: onbCountry || "AU",
         },
       },
-      external_account: {
+    };
+
+    // ✅ ONLY ADD BANK FOR AU (SAFE FOR NOW)
+    if (onbCountry === "AU") {
+      updatePayload.external_account = {
         object: "bank_account",
         country: "AU",
         currency: "aud",
@@ -103,10 +183,13 @@ console.log("🔥 SUBMIT ONBOARDING HIT");
         account_holder_type: "individual",
         routing_number: onbBsb,
         account_number: onbAccountNumber,
-      },
-    });
+      };
+    }
 
-    // Update Firestore
+    // ✅ UPDATE STRIPE
+    await stripe.accounts.update(stripeAccountId, updatePayload);
+
+    // ✅ UPDATE USER RECORD
     await userRef.update({
       stripe_onboarding_complete: true,
       stripe_details_submitted: true,
@@ -114,12 +197,14 @@ console.log("🔥 SUBMIT ONBOARDING HIT");
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    console.log("✅ Onboarding complete");
+
     return res.status(200).json({
       status: "success",
     });
 
   } catch (error) {
-    console.error("Onboarding error:", error);
+    console.error("❌ Onboarding error:", error);
 
     return res.status(500).json({
       status: "error",

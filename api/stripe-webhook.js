@@ -115,12 +115,19 @@ module.exports = async (req, res) => {
 
     console.log("🔥 PAYMENT INTENT:", paymentIntentId);
 
+    // 🔥 GET CHARGE ID (CRITICAL)
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    const chargeId = paymentIntent.latest_charge;
+
+    console.log("🔥 CHARGE ID:", chargeId);
+
     /* MARK PAID */
 
     await participantRef.update({
       paid_status: true,
       pendingPayment: false,
       payment_intent_id: paymentIntentId,
+      charge_id: chargeId,
       transfer_pending: true,
       paid_at: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -226,14 +233,25 @@ module.exports = async (req, res) => {
       return res.json({ received: true });
     }
 
-    const snapshot = await db
+    let snapshot = await db
       .collection("participants")
       .where("payment_intent_id", "==", paymentIntentId)
       .limit(1)
       .get();
 
+    // 🔁 FALLBACK — CHARGE ID
     if (snapshot.empty) {
-      console.log("❌ No participant for payment_intent:", paymentIntentId);
+      console.log("⚠️ Trying fallback via charge ID...");
+
+      snapshot = await db
+        .collection("participants")
+        .where("charge_id", "==", charge.id)
+        .limit(1)
+        .get();
+    }
+
+    if (snapshot.empty) {
+      console.log("❌ No participant found (intent or charge):", paymentIntentId);
       return res.json({ received: true });
     }
 

@@ -217,111 +217,134 @@ module.exports = async (req, res) => {
   }
 
   // ================================
-  // CHARGE SUCCEEDED (RETRY)
-  // ================================
+// CHARGE SUCCEEDED (RETRY)
+// ================================
 
-  if (event.type === "charge.succeeded") {
+if (event.type === "charge.succeeded") {
 
-    const charge = event.data.object;
+  const charge = event.data.object;
 
-    console.log("🔥 CHARGE SUCCEEDED EVENT");
+  console.log("🔥 CHARGE SUCCEEDED EVENT");
 
-    const paymentIntentId = charge.payment_intent;
+  const paymentIntentId = charge.payment_intent;
 
-    if (!paymentIntentId) {
-      console.log("❌ No payment_intent");
-      return res.json({ received: true });
-    }
+  if (!paymentIntentId) {
+    console.log("❌ No payment_intent");
+    return res.json({ received: true });
+  }
 
-    let snapshot = await db
+  // 🔍 FIRST ATTEMPT
+  let snapshot = await db
+    .collection("participants")
+    .where("payment_intent_id", "==", paymentIntentId)
+    .limit(1)
+    .get();
+
+  // 🔁 FALLBACK — CHARGE ID
+  if (snapshot.empty) {
+    console.log("⚠️ Trying fallback via charge ID...");
+
+    snapshot = await db
+      .collection("participants")
+      .where("charge_id", "==", charge.id)
+      .limit(1)
+      .get();
+  }
+
+  // ⏱ WAIT + RETRY (RACE CONDITION FIX)
+  if (snapshot.empty) {
+    console.log("⚠️ Not found yet — waiting 2 seconds...");
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    snapshot = await db
       .collection("participants")
       .where("payment_intent_id", "==", paymentIntentId)
       .limit(1)
       .get();
 
-    // 🔁 FALLBACK — CHARGE ID
     if (snapshot.empty) {
-      console.log("⚠️ Trying fallback via charge ID...");
-
       snapshot = await db
         .collection("participants")
         .where("charge_id", "==", charge.id)
         .limit(1)
         .get();
     }
-
-    if (snapshot.empty) {
-      console.log("❌ No participant found (intent or charge):", paymentIntentId);
-      return res.json({ received: true });
-    }
-
-    const participantDoc = snapshot.docs[0];
-    const participant = participantDoc.data();
-
-    console.log("✅ Retry participant:", participantDoc.id);
-
-    if (participant.transfer_id) {
-      console.log("⚠️ Transfer already completed");
-      return res.json({ received: true });
-    }
-
-    if (!participant.transfer_pending) {
-      console.log("⚠️ Not pending, skipping");
-      return res.json({ received: true });
-    }
-
-    let stackRef;
-
-    if (typeof participant.stack_id === "string") {
-      stackRef = db.collection("stacks").doc(participant.stack_id);
-    } else {
-      stackRef = participant.stack_id;
-    }
-
-    const organiserQuery = await db
-      .collection("participants")
-      .where("stack_id", "==", stackRef)
-      .where("isOrganiser", "==", true)
-      .limit(1)
-      .get();
-
-    if (organiserQuery.empty) {
-      console.log("❌ Organiser not found (retry)");
-      return res.json({ received: true });
-    }
-
-    const organiser = organiserQuery.docs[0].data();
-
-    const userSnap = await db.collection("users").doc(organiser.userID).get();
-
-    if (!userSnap.exists) {
-      console.log("❌ User not found (retry)");
-      return res.json({ received: true });
-    }
-
-    const organiserStripeAccountId = userSnap.data().stripe_account_id;
-
-    console.log("💰 Retry using account:", organiserStripeAccountId);
-
-    const result = await tryTransfer(
-      stripe,
-      { ...participant, id: participantDoc.id },
-      organiserStripeAccountId,
-      stackRef
-    );
-
-    if (result.success) {
-      await participantDoc.ref.update({
-        transfer_id: result.transferId,
-        transfer_pending: false,
-        transfer_error: false,
-      });
-
-      console.log("✅ Transfer success on retry");
-    } else {
-      console.log("❌ Retry failed (still too early)");
-    }
   }
+
+  // ❌ STILL NOT FOUND
+  if (snapshot.empty) {
+    console.log("❌ Still not found after retry:", paymentIntentId);
+    return res.json({ received: true });
+  }
+
+  const participantDoc = snapshot.docs[0];
+  const participant = participantDoc.data();
+
+  console.log("✅ Retry participant:", participantDoc.id);
+
+  if (participant.transfer_id) {
+    console.log("⚠️ Transfer already completed");
+    return res.json({ received: true });
+  }
+
+  if (!participant.transfer_pending) {
+    console.log("⚠️ Not pending, skipping");
+    return res.json({ received: true });
+  }
+
+  let stackRef;
+
+  if (typeof participant.stack_id === "string") {
+    stackRef = db.collection("stacks").doc(participant.stack_id);
+  } else {
+    stackRef = participant.stack_id;
+  }
+
+  const organiserQuery = await db
+    .collection("participants")
+    .where("stack_id", "==", stackRef)
+    .where("isOrganiser", "==", true)
+    .limit(1)
+    .get();
+
+  if (organiserQuery.empty) {
+    console.log("❌ Organiser not found (retry)");
+    return res.json({ received: true });
+  }
+
+  const organiser = organiserQuery.docs[0].data();
+
+  const userSnap = await db.collection("users").doc(organiser.userID).get();
+
+  if (!userSnap.exists) {
+    console.log("❌ User not found (retry)");
+    return res.json({ received: true });
+  }
+
+  const organiserStripeAccountId = userSnap.data().stripe_account_id;
+
+  console.log("💰 Retry using account:", organiserStripeAccountId);
+
+  const result = await tryTransfer(
+    stripe,
+    { ...participant, id: participantDoc.id },
+    organiserStripeAccountId,
+    stackRef
+  );
+
+  if (result.success) {
+    await participantDoc.ref.update({
+      transfer_id: result.transferId,
+      transfer_pending: false,
+      transfer_error: false,
+    });
+
+    console.log("✅ Transfer success on retry");
+  } else {
+    console.log("❌ Retry failed (still too early)");
+  }
+}
 
   return res.json({ received: true });
 };

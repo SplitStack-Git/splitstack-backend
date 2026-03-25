@@ -81,9 +81,12 @@ module.exports = async (req, res) => {
     created_at: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  /* PAYMENT COMPLETED */
+  // ================================
+  // CHECKOUT SESSION COMPLETED
+  // ================================
 
   if (event.type === "checkout.session.completed") {
+
     const session = event.data.object;
 
     const participant_id = session.metadata?.participant_id;
@@ -108,24 +111,17 @@ module.exports = async (req, res) => {
       return res.json({ received: true });
     }
 
-    /* GET PAYMENT INTENT */
+    const paymentIntentId = session.payment_intent;
 
-    const paymentIntent = await stripe.paymentIntents.retrieve(
-      session.payment_intent
-    );
-
-    const chargeId = paymentIntent.latest_charge;
-
-    console.log("🔥 PAYMENT INTENT:", session.payment_intent);
-    console.log("🔥 CHARGE ID:", chargeId);
+    console.log("🔥 PAYMENT INTENT:", paymentIntentId);
 
     /* MARK PAID */
 
     await participantRef.update({
       paid_status: true,
       pendingPayment: false,
-      payment_intent_id: session.payment_intent,
-      charge_id: chargeId,
+      payment_intent_id: paymentIntentId,
+      transfer_pending: true,
       paid_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -167,8 +163,6 @@ module.exports = async (req, res) => {
 
     console.log("✅ Organiser found:", organiser.display_name);
 
-    /* LOAD USER */
-
     if (!organiser.userID) {
       console.log("❌ Organiser missing userID");
       return res.json({ received: true });
@@ -182,9 +176,7 @@ module.exports = async (req, res) => {
       return res.json({ received: true });
     }
 
-    const user = userSnap.data();
-
-    const organiserStripeAccountId = user.stripe_account_id;
+    const organiserStripeAccountId = userSnap.data().stripe_account_id;
 
     if (!organiserStripeAccountId) {
       console.log("❌ Missing organiser Stripe account");
@@ -193,11 +185,7 @@ module.exports = async (req, res) => {
 
     console.log("💰 Using Stripe account:", organiserStripeAccountId);
 
-    /* TRANSFER */
-
-    await participantRef.update({
-      transfer_pending: true,
-    });
+    /* TRANSFER ATTEMPT */
 
     const result = await tryTransfer(
       stripe,
@@ -219,8 +207,103 @@ module.exports = async (req, res) => {
 
       console.log("❌ Transfer failed immediately");
     }
+  }
 
-  } // ✅ THIS WAS MISSING
+  // ================================
+  // CHARGE SUCCEEDED (RETRY)
+  // ================================
+
+  if (event.type === "charge.succeeded") {
+
+    const charge = event.data.object;
+
+    console.log("🔥 CHARGE SUCCEEDED EVENT");
+
+    const paymentIntentId = charge.payment_intent;
+
+    if (!paymentIntentId) {
+      console.log("❌ No payment_intent");
+      return res.json({ received: true });
+    }
+
+    const snapshot = await db
+      .collection("participants")
+      .where("payment_intent_id", "==", paymentIntentId)
+      .limit(1)
+      .get();
+
+    if (snapshot.empty) {
+      console.log("❌ No participant for payment_intent:", paymentIntentId);
+      return res.json({ received: true });
+    }
+
+    const participantDoc = snapshot.docs[0];
+    const participant = participantDoc.data();
+
+    console.log("✅ Retry participant:", participantDoc.id);
+
+    if (participant.transfer_id) {
+      console.log("⚠️ Transfer already completed");
+      return res.json({ received: true });
+    }
+
+    if (!participant.transfer_pending) {
+      console.log("⚠️ Not pending, skipping");
+      return res.json({ received: true });
+    }
+
+    let stackRef;
+
+    if (typeof participant.stack_id === "string") {
+      stackRef = db.collection("stacks").doc(participant.stack_id);
+    } else {
+      stackRef = participant.stack_id;
+    }
+
+    const organiserQuery = await db
+      .collection("participants")
+      .where("stack_id", "==", stackRef)
+      .where("isOrganiser", "==", true)
+      .limit(1)
+      .get();
+
+    if (organiserQuery.empty) {
+      console.log("❌ Organiser not found (retry)");
+      return res.json({ received: true });
+    }
+
+    const organiser = organiserQuery.docs[0].data();
+
+    const userSnap = await db.collection("users").doc(organiser.userID).get();
+
+    if (!userSnap.exists) {
+      console.log("❌ User not found (retry)");
+      return res.json({ received: true });
+    }
+
+    const organiserStripeAccountId = userSnap.data().stripe_account_id;
+
+    console.log("💰 Retry using account:", organiserStripeAccountId);
+
+    const result = await tryTransfer(
+      stripe,
+      { ...participant, id: participantDoc.id },
+      organiserStripeAccountId,
+      stackRef
+    );
+
+    if (result.success) {
+      await participantDoc.ref.update({
+        transfer_id: result.transferId,
+        transfer_pending: false,
+        transfer_error: false,
+      });
+
+      console.log("✅ Transfer success on retry");
+    } else {
+      console.log("❌ Retry failed (still too early)");
+    }
+  }
 
   return res.json({ received: true });
 };

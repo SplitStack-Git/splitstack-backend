@@ -18,14 +18,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 /* HELPER — SAFE TRANSFER ATTEMPT */
 
-async function tryTransfer(stripe, participant, organiser, stackRef) {
+async function tryTransfer(stripe, participant, organiserStripeAccountId, stackRef) {
   try {
     console.log("🚀 Attempting transfer...");
 
     const transfer = await stripe.transfers.create({
       amount: Math.round(Number(participant.amount) * 100),
       currency: "aud",
-      destination: organiser.stripe_account_id,
+      destination: organiserStripeAccountId,
       metadata: {
         participant_id: participant.id,
         stack_id: stackRef.id,
@@ -108,7 +108,7 @@ module.exports = async (req, res) => {
       return res.json({ received: true });
     }
 
-    /* 🔥 GET PAYMENT INTENT + CHARGE */
+    /* GET PAYMENT INTENT */
 
     const paymentIntent = await stripe.paymentIntents.retrieve(
       session.payment_intent
@@ -125,7 +125,7 @@ module.exports = async (req, res) => {
       paid_status: true,
       pendingPayment: false,
       payment_intent_id: session.payment_intent,
-      charge_id: chargeId, // ✅ THIS IS THE FIX
+      charge_id: chargeId,
       paid_at: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -167,44 +167,60 @@ module.exports = async (req, res) => {
 
     console.log("✅ Organiser found:", organiser.display_name);
 
-    /* VALIDATION */
+    /* LOAD USER */
 
-    if (!organiser.stripe_account_id) {
+    if (!organiser.userID) {
+      console.log("❌ Organiser missing userID");
+      return res.json({ received: true });
+    }
+
+    const userRef = db.collection("users").doc(organiser.userID);
+    const userSnap = await userRef.get();
+
+    if (!userSnap.exists) {
+      console.log("❌ User not found for organiser");
+      return res.json({ received: true });
+    }
+
+    const user = userSnap.data();
+
+    const organiserStripeAccountId = user.stripe_account_id;
+
+    if (!organiserStripeAccountId) {
       console.log("❌ Missing organiser Stripe account");
       return res.json({ received: true });
     }
 
-    if (!organiser.stripe_payouts_enabled) {
-      console.log("❌ Payouts not enabled");
-      return res.json({ received: true });
-    }
+    console.log("💰 Using Stripe account:", organiserStripeAccountId);
 
-    /* MARK TRANSFER PENDING */
+    /* TRANSFER */
 
     await participantRef.update({
       transfer_pending: true,
     });
 
-    /* DELAYED TRANSFER ATTEMPT */
+    const result = await tryTransfer(
+      stripe,
+      { ...participant, id: participantRef.id },
+      organiserStripeAccountId,
+      stackRef
+    );
 
-    setTimeout(async () => {
-      const result = await tryTransfer(
-        stripe,
-        { ...participant, id: participantRef.id },
-        organiser,
-        stackRef
-      );
+    if (result.success) {
+      await participantRef.update({
+        transfer_id: result.transferId,
+        transfer_pending: false,
+      });
+    } else {
+      await participantRef.update({
+        transfer_pending: true,
+        transfer_error: true,
+      });
 
-      if (result.success) {
-        await participantRef.update({
-          transfer_id: result.transferId,
-          transfer_pending: false,
-        });
-      } else {
-        console.log("⏳ Transfer not ready yet — will retry later");
-      }
-    }, 15000);
-  }
+      console.log("❌ Transfer failed immediately");
+    }
+
+  } // ✅ THIS WAS MISSING
 
   return res.json({ received: true });
 };

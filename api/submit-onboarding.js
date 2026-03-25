@@ -113,7 +113,7 @@ export default async function handler(req, res) {
 
       const account = await stripe.accounts.create({
         type: "custom",
-        country: onbCountry || "AU", // ✅ FIXED
+        country: onbCountry || "AU",
         email: onbEmail,
         business_type: "individual",
         capabilities: {
@@ -146,22 +146,25 @@ export default async function handler(req, res) {
       });
     }
 
-    // ✅ FORMAT PHONE HERE
+    // ✅ FORMAT PHONE
     const formattedPhone = formatPhone(onbPhone, onbCountry);
 
-    // ✅ BUILD UPDATE OBJECT
+    // ✅ BUILD UPDATE OBJECT (KEEP YOUR STRUCTURE)
     const updatePayload = {
       business_type: "individual",
+
       individual: {
         first_name: onbFirstName,
         last_name: onbLastName,
         email: onbEmail,
-        phone: formattedPhone, // ✅ FIXED
+        phone: formattedPhone,
+
         dob: {
           day: new Date(onbDob).getDate(),
           month: new Date(onbDob).getMonth() + 1,
           year: new Date(onbDob).getFullYear(),
         },
+
         address: {
           line1: onbStreet1,
           line2: onbStreet2 || "",
@@ -171,9 +174,25 @@ export default async function handler(req, res) {
           country: onbCountry || "AU",
         },
       },
+
+      // 🔥 THIS IS WHAT YOU WERE MISSING
+      business_profile: {
+        mcc: "5734",
+        url: "https://splitstack.app",
+        product_description:
+          "SplitStack enables users to split bills and collect payments from friends",
+      },
+
+      tos_acceptance: {
+        date: Math.floor(Date.now() / 1000),
+        ip:
+          req.headers["x-forwarded-for"] ||
+          req.socket?.remoteAddress ||
+          "0.0.0.0",
+      },
     };
 
-    // ✅ ONLY ADD BANK FOR AU (SAFE FOR NOW)
+    // ✅ ONLY ADD BANK FOR AU (KEEP YOUR LOGIC)
     if (onbCountry === "AU") {
       updatePayload.external_account = {
         object: "bank_account",

@@ -19,6 +19,8 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 export default async function handler(req, res) {
+console.log("🔥 SUBMIT ONBOARDING HIT");
+
   try {
     const {
       userId,

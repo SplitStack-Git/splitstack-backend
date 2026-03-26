@@ -30,6 +30,8 @@ async function tryTransfer(stripe, participant, organiserStripeAccountId, stackR
         participant_id: participant.id,
         stack_id: stackRef.id,
       },
+    }, {
+      idempotencyKey: `transfer_${participant.id}`
     });
 
     console.log("✅ Transfer success:", transfer.id);
@@ -74,8 +76,6 @@ module.exports = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  /* DEBUG LOG */
-
   await db.collection("debug").add({
     event_type: event.type,
     created_at: admin.firestore.FieldValue.serverTimestamp(),
@@ -115,13 +115,10 @@ module.exports = async (req, res) => {
 
     console.log("🔥 PAYMENT INTENT:", paymentIntentId);
 
-    // 🔥 GET CHARGE ID (CRITICAL)
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     const chargeId = paymentIntent.latest_charge;
 
     console.log("🔥 CHARGE ID:", chargeId);
-
-    /* MARK PAID */
 
     await participantRef.update({
       paid_status: true,
@@ -133,8 +130,6 @@ module.exports = async (req, res) => {
     });
 
     console.log("✅ Participant marked paid:", participant_id);
-
-    /* LOAD STACK */
 
     let stackRef;
 
@@ -150,8 +145,6 @@ module.exports = async (req, res) => {
       console.log("❌ Stack not found");
       return res.json({ received: true });
     }
-
-    /* LOAD ORGANISER */
 
     const organiserQuery = await db
       .collection("participants")
@@ -192,7 +185,9 @@ module.exports = async (req, res) => {
 
     console.log("💰 Using Stripe account:", organiserStripeAccountId);
 
-    /* TRANSFER ATTEMPT */
+    if (participant.transfer_id) return res.json({ received: true });
+    if (participant.transfer_processing) return res.json({ received: true });
+    await participantRef.update({ transfer_processing: true });
 
     const result = await tryTransfer(
       stripe,
@@ -205,11 +200,13 @@ module.exports = async (req, res) => {
       await participantRef.update({
         transfer_id: result.transferId,
         transfer_pending: false,
+        transfer_processing: false
       });
     } else {
       await participantRef.update({
         transfer_pending: true,
         transfer_error: true,
+        transfer_processing: false
       });
 
       console.log("❌ Transfer failed immediately");
@@ -233,14 +230,12 @@ if (event.type === "charge.succeeded") {
     return res.json({ received: true });
   }
 
-  // 🔍 FIRST ATTEMPT
   let snapshot = await db
     .collection("participants")
     .where("payment_intent_id", "==", paymentIntentId)
     .limit(1)
     .get();
 
-  // 🔁 FALLBACK — CHARGE ID
   if (snapshot.empty) {
     console.log("⚠️ Trying fallback via charge ID...");
 
@@ -251,7 +246,6 @@ if (event.type === "charge.succeeded") {
       .get();
   }
 
-  // ⏱ WAIT + RETRY (RACE CONDITION FIX)
   if (snapshot.empty) {
     console.log("⚠️ Not found yet — waiting 2 seconds...");
 
@@ -272,7 +266,6 @@ if (event.type === "charge.succeeded") {
     }
   }
 
-  // ❌ STILL NOT FOUND
   if (snapshot.empty) {
     console.log("❌ Still not found after retry:", paymentIntentId);
     return res.json({ received: true });
@@ -283,15 +276,10 @@ if (event.type === "charge.succeeded") {
 
   console.log("✅ Retry participant:", participantDoc.id);
 
-  if (participant.transfer_id) {
-    console.log("⚠️ Transfer already completed");
-    return res.json({ received: true });
-  }
-
-  if (!participant.transfer_pending) {
-    console.log("⚠️ Not pending, skipping");
-    return res.json({ received: true });
-  }
+  if (participant.transfer_id) return res.json({ received: true });
+  if (!participant.transfer_pending) return res.json({ received: true });
+  if (participant.transfer_processing) return res.json({ received: true });
+  await participantDoc.ref.update({ transfer_processing: true });
 
   let stackRef;
 
@@ -338,10 +326,15 @@ if (event.type === "charge.succeeded") {
       transfer_id: result.transferId,
       transfer_pending: false,
       transfer_error: false,
+      transfer_processing: false
     });
 
     console.log("✅ Transfer success on retry");
   } else {
+    await participantDoc.ref.update({
+      transfer_processing: false
+    });
+
     console.log("❌ Retry failed (still too early)");
   }
 }

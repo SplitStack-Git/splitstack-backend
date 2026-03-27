@@ -137,30 +137,43 @@ module.exports = async (req, res) => {
 
     console.log("✅ Participant marked paid:", participant_id);
 
-    // ================================
-    // ✅ SEND SMS (SAFE ADDITION)
-    // ================================
+// ================================
+// ✅ SEND SMS (SAFE ADDITION)
+// ================================
 
-    try {
-      if (participant.phone && participant.stack_id) {
+try {
+  console.log("📩 SMS START");
 
-        let stackRefForSMS;
+  let stackRefForSMS;
 
-        if (typeof participant.stack_id === "string") {
-          stackRefForSMS = db.collection("stacks").doc(participant.stack_id);
-        } else {
-          stackRefForSMS = participant.stack_id;
-        }
+  if (typeof participant.stack_id === "string") {
+    stackRefForSMS = db.collection("stacks").doc(participant.stack_id);
+  } else {
+    stackRefForSMS = participant.stack_id;
+  }
 
-        const stackSnapForSMS = await stackRefForSMS.get();
+  if (!stackRefForSMS) {
+    console.log("❌ No stackRef for SMS");
+  } else {
 
-        if (stackSnapForSMS.exists) {
-          const stackData = stackSnapForSMS.data();
+    const stackSnapForSMS = await stackRefForSMS.get();
 
-          const link = "https://splitstack.app/stackPaymentStatus?token=" + stackData.public_status_token;
+    if (!stackSnapForSMS.exists) {
+      console.log("❌ Stack not found for SMS");
+    } else {
 
-          await twilioClient.messages.create({
-            body: `✅ Payment received!
+      const stackData = stackSnapForSMS.data();
+
+      const link =
+        "https://splitstack.app/stackPaymentStatus?token=" +
+        stackData.public_status_token;
+
+      if (!participant.phone) {
+        console.log("❌ Missing participant phone");
+      } else {
+
+        await twilioClient.messages.create({
+          body: `✅ Payment received!
 
 Hey ${participant.name},
 
@@ -168,16 +181,18 @@ You’ve paid $${participant.amount} for ${stackData.title}.
 
 View status:
 ${link}`,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: participant.phone,
-          });
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: participant.phone,
+        });
 
-          console.log("📩 Payment SMS sent");
-        }
+        console.log("📩 Payment SMS sent");
       }
-    } catch (smsError) {
-      console.log("❌ SMS failed:", smsError.message);
     }
+  }
+
+} catch (smsError) {
+  console.log("❌ SMS failed:", smsError.message);
+}
 
     /* LOAD STACK */
 

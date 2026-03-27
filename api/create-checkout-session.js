@@ -2,6 +2,7 @@
 
 const admin = require('firebase-admin');
 const Stripe = require('stripe');
+const twilio = require('twilio');
 
 function initFirebaseAdmin() {
   if (admin.apps.length) return;
@@ -46,6 +47,11 @@ module.exports = async (req, res) => {
       apiVersion: '2024-06-20',
     });
 
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+
     const body = await readJsonBody(req);
     const { participant_id } = body;
 
@@ -68,12 +74,16 @@ module.exports = async (req, res) => {
 
     const participant = participantSnap.data();
 
+    const participantDocId = participantRef.id;
+
+    console.log("✅ USING PARTICIPANT ID:", participantDocId);
+
     if (participant.paid_status === true) {
       return res.status(400).json({ error: 'Participant already paid' });
     }
 
     // -------------------------
-    // Load stack (DocumentReference)
+    // Load stack
     // -------------------------
 
     const stackRef = participant.stack_id;
@@ -96,7 +106,6 @@ module.exports = async (req, res) => {
 
     const currency = (participant.currency || stack.currency || 'aud').toLowerCase();
 
-    // Use cents safely
     let unitAmount = participant.amount_to_pay_cents;
 
     if (!unitAmount) {
@@ -129,8 +138,10 @@ module.exports = async (req, res) => {
         }
       ],
       metadata: {
-        participant_id: String(participant_id),
-        stack_id: stackRef.id
+        participant_id: participantDocId,
+        stack_id: stackRef.id,
+        organiser_id: stack.organiser_id || '',
+        amount_original_share_cents: String(unitAmount)
       },
       success_url: 'https://splitstack.com/success?session_id={CHECKOUT_SESSION_ID}',
       cancel_url: 'https://splitstack.com/cancel'
@@ -145,14 +156,30 @@ module.exports = async (req, res) => {
     });
 
     // -------------------------
-    // RETURN (THIS FIXES NULL)
+    // Send SMS (Twilio)
+    // -------------------------
+
+    if (participant.phone) {
+      try {
+        await client.messages.create({
+          body: `You owe $${participant.amount}. Pay here: ${session.url}`,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: participant.phone
+        });
+      } catch (smsError) {
+        console.error("⚠️ SMS FAILED:", smsError.message);
+      }
+    }
+
+    // -------------------------
+    // RETURN
     // -------------------------
 
     return res.status(200).json({
-  checkoutUrl: session.url,
-  checkout_url: session.url,
-  url: session.url
-});
+      checkoutUrl: session.url,
+      checkout_url: session.url,
+      url: session.url
+    });
 
   } catch (err) {
 
@@ -166,4 +193,3 @@ module.exports = async (req, res) => {
   }
 
 };
-

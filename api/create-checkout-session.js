@@ -130,7 +130,7 @@ module.exports = async (req, res) => {
           price_data: {
             currency,
             product_data: {
-              name: `SplitStack - ${stack.title || 'Payment'} 
+              name: `SplitStack - ${stack.title || 'Payment'}` 
             },
             unit_amount: unitAmount
           },

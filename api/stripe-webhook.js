@@ -30,9 +30,9 @@ const transfer = await stripe.transfers.create({
   metadata: {
     participant_id: participant.id,
     stack_id: stackRef.id,
-  },
+  }
 }, {
-  idempotencyKey: `transfer_${participant.id}`
+  idempotency_key: `transfer_${participant.id}`
 });
 
 console.log("✅ Transfer success:", transfer.id);

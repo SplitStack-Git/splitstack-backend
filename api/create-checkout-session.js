@@ -176,10 +176,11 @@ module.exports = async (req, res) => {
     // -------------------------
 
     return res.status(200).json({
-      checkoutUrl: session.url,
-      checkout_url: session.url,
-      url: session.url
-    });
+  checkoutUrl: session.url,
+  checkout_url: session.url,
+  url: session.url,
+  participant_phone: participant_phone
+});
 
   } catch (err) {
 

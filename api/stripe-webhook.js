@@ -130,6 +130,10 @@ module.exports = async (req, res) => {
     });
 
     console.log("✅ Participant marked paid:", participant_id);
+    const stackSnap = await stackRef.get();
+    const stack = stackSnap.data();
+
+    const link = `https://splitstack.app/stackPaymentStatus?token=${stack.public_status_token}`;
 
     let stackRef;
 

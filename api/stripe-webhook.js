@@ -143,8 +143,6 @@ module.exports = async (req, res) => {
       stackRef = participant.stack_id;
     }
 
-    const stackSnap = await stackRef.get();
-
     if (!stackSnap.exists) {
       console.log("❌ Stack not found");
       return res.json({ received: true });

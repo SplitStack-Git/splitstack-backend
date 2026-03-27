@@ -133,7 +133,7 @@ console.log("✅ Participant marked paid:", participant_id);
 
 // ✅ FIXED ORDER STARTS HERE
 
-let stackRef;
+stackRef = null;
 
 if (typeof participant.stack_id === "string") {
   stackRef = db.collection("stacks").doc(participant.stack_id);

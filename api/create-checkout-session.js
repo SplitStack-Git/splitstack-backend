@@ -125,27 +125,29 @@ module.exports = async (req, res) => {
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      line_items: [
-        {
-          price_data: {
-            currency,
-            product_data: {
-              name: `SplitStack - ${stack.title || 'Payment'}` 
-            },
-            unit_amount: unitAmount
-          },
-          quantity: 1
-        }
-      ],
-      metadata: {
-        participant_id: participantDocId,
-        stack_id: stackRef.id,
-        organiser_id: stack.organiser_id || '',
-        amount_original_share_cents: String(unitAmount)
+      const session = await stripe.checkout.sessions.create({
+  mode: 'payment',
+  line_items: [
+    {
+      price_data: {
+        currency,
+        product_data: {
+          name: `SplitStack - ${stack.title || 'Payment'}`
+        },
+        unit_amount: unitAmount
       },
-      success_url: 'https://splitstack.com/success?session_id={CHECKOUT_SESSION_ID}',
-      cancel_url: 'https://splitstack.com/cancel'
-    });
+      quantity: 1
+    }
+  ],
+  metadata: {
+    participant_id: participantDocId,
+    stack_id: stackRef.id,
+    organiser_id: stack.organiser_id || '',
+    amount_original_share_cents: String(unitAmount)
+  },
+  success_url: 'https://splitstack.com/success?session_id={CHECKOUT_SESSION_ID}',
+  cancel_url: 'https://splitstack.com/cancel'
+});
 
     // -------------------------
     // Save checkout session

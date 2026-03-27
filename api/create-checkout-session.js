@@ -85,7 +85,7 @@ if (participant.paid_status === true) {
 }
 
 // -------------------------
-// LOAD STACK (SAFE)
+// LOAD STACK
 // -------------------------
 
 let stackRef;
@@ -130,11 +130,12 @@ if (!unitAmount || unitAmount <= 0) {
 console.log("💰 Amount (cents):", unitAmount);
 
 // -------------------------
-// CREATE STRIPE SESSION
+// CREATE STRIPE SESSION (SAFE)
 // -------------------------
 
 const session = await stripe.checkout.sessions.create({
   mode: 'payment',
+  payment_method_types: ['card'],
   line_items: [
     {
       price_data: {
@@ -153,38 +154,36 @@ const session = await stripe.checkout.sessions.create({
     organiser_id: stack.organiser_id || '',
     amount_original_share_cents: String(unitAmount)
   },
-  success_url: 'https://splitstack.com/success?session_id={CHECKOUT_SESSION_ID}',
-  cancel_url: 'https://splitstack.com/cancel'
+  success_url: 'https://splitstack-backend.vercel.app/success?session_id={CHECKOUT_SESSION_ID}',
+  cancel_url: 'https://splitstack-backend.vercel.app/cancel'
 });
 
 console.log("✅ Stripe session created:", session.id);
+console.log("🧪 SESSION URL:", session.url);
 
 // -------------------------
-// SAVE CHECKOUT SESSION
+// GUARANTEED PAYMENT LINK
+// -------------------------
+
+const paymentLink =
+  session.url ||
+  (session.id ? `https://checkout.stripe.com/pay/${session.id}` : null);
+
+if (!paymentLink) {
+  console.error("❌ CRITICAL: No payment link generated");
+}
+
+// -------------------------
+// SAVE SESSION
 // -------------------------
 
 await participantRef.update({
   checkout_session_id: session.id
 });
 
-console.log("✅ Saved checkout session");
-
 // -------------------------
-// SEND SMS (TWILIO)
+// SEND SMS (SAFE)
 // -------------------------
-
-const paymentLink = session.url;
-
-console.log("📲 SMS TARGET:", participant.phone);
-console.log("🔗 PAYMENT LINK:", paymentLink);
-
-if (!paymentLink) {
-  console.log("❌ ERROR: session.url is NULL");
-}
-
-if (!participant.phone) {
-  console.log("⚠️ No phone number — SMS skipped");
-}
 
 if (participant.phone && paymentLink) {
   try {
@@ -201,11 +200,13 @@ to: participant.phone
 });
 
 ```
-    console.log("✅ SMS SENT SUCCESSFULLY");
+    console.log("✅ SMS SENT");
 
   } catch (smsError) {
     console.error("❌ SMS FAILED:", smsError.message);
   }
+} else {
+  console.log("⚠️ SMS skipped (missing phone or link)");
 }
 
 // -------------------------
@@ -213,9 +214,9 @@ to: participant.phone
 // -------------------------
 
 return res.status(200).json({
-  checkoutUrl: session.url,
-  checkout_url: session.url,
-  url: session.url
+  checkoutUrl: paymentLink,
+  checkout_url: paymentLink,
+  url: paymentLink
 });
 ```
 

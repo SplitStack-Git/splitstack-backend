@@ -4,13 +4,13 @@ const Stripe = require("stripe");
 /* INIT FIREBASE */
 
 if (!admin.apps.length) {
-const serviceAccount = JSON.parse(
-Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, "base64").toString("utf8")
-);
+  const serviceAccount = JSON.parse(
+    Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, "base64").toString("utf8")
+  );
 
-admin.initializeApp({
-credential: admin.credential.cert(serviceAccount),
-});
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
 }
 
 const db = admin.firestore();
@@ -19,31 +19,27 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 /* HELPER — SAFE TRANSFER ATTEMPT */
 
 async function tryTransfer(stripe, participant, organiserStripeAccountId, stackRef) {
-try {
-console.log("🚀 Attempting transfer...");
+  try {
+    console.log("🚀 Attempting transfer...");
 
-```
-const transfer = await stripe.transfers.create({
-  amount: Math.round(Number(participant.amount) * 100),
-  currency: "aud",
-  destination: organiserStripeAccountId,
-  metadata: {
-    participant_id: participant.id,
-    stack_id: stackRef.id,
+    const transfer = await stripe.transfers.create({
+      amount: Math.round(Number(participant.amount) * 100),
+      currency: "aud",
+      destination: organiserStripeAccountId,
+      metadata: {
+        participant_id: participant.id,
+        stack_id: stackRef.id,
+      }
+    });
+
+    console.log("✅ Transfer success:", transfer.id);
+
+    return { success: true, transferId: transfer.id };
+
+  } catch (err) {
+    console.log("❌ Transfer failed (likely too early):", err.code);
+    return { success: false };
   }
-}, {
-  idempotency_key: `transfer_${participant.id}`
-});
-
-console.log("✅ Transfer success:", transfer.id);
-
-return { success: true, transferId: transfer.id };
-```
-
-} catch (err) {
-console.log("❌ Transfer failed (likely too early):", err.code);
-return { success: false };
-}
 }
 
 /* WEBHOOK HANDLER */

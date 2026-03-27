@@ -156,20 +156,20 @@ module.exports = async (req, res) => {
     });
 
     // -------------------------
-    // Send SMS (Twilio)
-    // -------------------------
+// Send SMS (Twilio)
+// -------------------------
 
-    if (participant.phone) {
-      try {
-        await client.messages.create({
-          body: `You owe $${participant.amount}. Pay here: ${session.url}`,
-          from: process.env.TWILIO_PHONE_NUMBER,
-          to: participant.phone
-        });
-      } catch (smsError) {
-        console.error("⚠️ SMS FAILED:", smsError.message);
-      }
-    }
+if (participant.phone) {
+  try {
+    await client.messages.create({
+      body: 'You owe $' + participant.amount + '. Pay here: ' + session.url,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: participant.phone
+    });
+  } catch (smsError) {
+    console.error("⚠️ SMS FAILED:", smsError.message);
+  }
+}
 
     // -------------------------
     // RETURN

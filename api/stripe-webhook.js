@@ -141,6 +141,29 @@ if (typeof participant.stack_id === "string") {
   stackRef = participant.stack_id;
 }
 
+await participantRef.update({
+  paid_status: true,
+  pendingPayment: false,
+  payment_intent_id: paymentIntentId,
+  charge_id: chargeId,
+  transfer_pending: true,
+  paid_at: admin.firestore.FieldValue.serverTimestamp(),
+});
+
+console.log("✅ Participant marked paid:", participant_id);
+
+// -------------------------
+// LOAD STACK (SAFE)
+// -------------------------
+
+let stackRef;
+
+if (typeof participant.stack_id === "string") {
+  stackRef = db.collection("stacks").doc(participant.stack_id);
+} else {
+  stackRef = participant.stack_id;
+}
+
 if (!stackRef) {
   console.log("❌ No stackRef");
   return res.json({ received: true });
@@ -155,7 +178,11 @@ if (!stackSnap.exists) {
 
 const stack = stackSnap.data();
 
-const link = `https://splitstack.app/stackPaymentStatus?token=${stack.public_status_token}`;
+// -------------------------
+// LINK (SAFE)
+// -------------------------
+
+const link = "https://splitstack.app/stackPaymentStatus?token=" + stack.public_status_token;
 
 // ================================
 // FIND ORGANISER

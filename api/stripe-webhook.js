@@ -1,5 +1,6 @@
 const admin = require("firebase-admin");
 const Stripe = require("stripe");
+const twilio = require("twilio");
 
 /* INIT FIREBASE */
 
@@ -15,6 +16,11 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+const twilioClient = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
 
 /* HELPER — SAFE TRANSFER ATTEMPT */
 
@@ -115,13 +121,10 @@ module.exports = async (req, res) => {
 
     console.log("🔥 PAYMENT INTENT:", paymentIntentId);
 
-    // 🔥 GET CHARGE ID (CRITICAL)
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     const chargeId = paymentIntent.latest_charge;
 
     console.log("🔥 CHARGE ID:", chargeId);
-
-    /* MARK PAID */
 
     await participantRef.update({
       paid_status: true,
@@ -133,6 +136,48 @@ module.exports = async (req, res) => {
     });
 
     console.log("✅ Participant marked paid:", participant_id);
+
+    // ================================
+    // ✅ SEND SMS (SAFE ADDITION)
+    // ================================
+
+    try {
+      if (participant.phone && participant.stack_id) {
+
+        let stackRefForSMS;
+
+        if (typeof participant.stack_id === "string") {
+          stackRefForSMS = db.collection("stacks").doc(participant.stack_id);
+        } else {
+          stackRefForSMS = participant.stack_id;
+        }
+
+        const stackSnapForSMS = await stackRefForSMS.get();
+
+        if (stackSnapForSMS.exists) {
+          const stackData = stackSnapForSMS.data();
+
+          const link = "https://splitstack.app/stackPaymentStatus?token=" + stackData.public_status_token;
+
+          await twilioClient.messages.create({
+            body: `✅ Payment received!
+
+Hey ${participant.name},
+
+You’ve paid $${participant.amount} for ${stackData.title}.
+
+View status:
+${link}`,
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: participant.phone,
+          });
+
+          console.log("📩 Payment SMS sent");
+        }
+      }
+    } catch (smsError) {
+      console.log("❌ SMS failed:", smsError.message);
+    }
 
     /* LOAD STACK */
 
@@ -239,7 +284,6 @@ module.exports = async (req, res) => {
       .limit(1)
       .get();
 
-    // 🔁 FALLBACK — CHARGE ID
     if (snapshot.empty) {
       console.log("⚠️ Trying fallback via charge ID...");
 

@@ -39,7 +39,12 @@ export 'stack_delete_model.dart';
 /// - Do NOT include Firestore, backend logic, or data assumptions
 /// page
 class StackDeleteWidget extends StatefulWidget {
-  const StackDeleteWidget({super.key});
+  const StackDeleteWidget({
+    super.key,
+    required this.stackRefrence,
+  });
+
+  final DocumentReference? stackRefrence;
 
   @override
   State<StackDeleteWidget> createState() => _StackDeleteWidgetState();
@@ -58,6 +63,8 @@ class _StackDeleteWidgetState extends State<StackDeleteWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => StackDeleteModel());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
   @override
@@ -170,8 +177,9 @@ class _StackDeleteWidgetState extends State<StackDeleteWidget> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           FFButtonWidget(
-                            onPressed: () {
-                              print('Button pressed ...');
+                            onPressed: () async {
+                              await widget.stackRefrence!.delete();
+                              context.safePop();
                             },
                             text: 'Delete Stack',
                             options: FFButtonOptions(
@@ -210,8 +218,8 @@ class _StackDeleteWidgetState extends State<StackDeleteWidget> {
                             ),
                           ),
                           FFButtonWidget(
-                            onPressed: () {
-                              print('Button pressed ...');
+                            onPressed: () async {
+                              context.safePop();
                             },
                             text: 'Cancel',
                             options: FFButtonOptions(

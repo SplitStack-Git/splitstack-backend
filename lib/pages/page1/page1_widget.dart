@@ -1,12 +1,16 @@
 import '/auth/firebase_auth/auth_util.dart';
+import '/backend/api_requests/api_calls.dart';
 import '/backend/backend.dart';
 import '/components/empty_list_widget.dart';
+import '/components/stack_delete_widget.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
+import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'page1_model.dart';
 export 'page1_model.dart';
 
@@ -29,6 +33,8 @@ class _Page1WidgetState extends State<Page1Widget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => Page1Model());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
   @override
@@ -40,6 +46,8 @@ class _Page1WidgetState extends State<Page1Widget> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<FFAppState>();
+
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -106,6 +114,24 @@ class _Page1WidgetState extends State<Page1Widget> {
                                 _navigate = () => context.goNamedAuth(
                                     SplashScreenWidget.routeName,
                                     context.mounted);
+                                FFAppState().onbFirstName = '';
+                                FFAppState().onbLastName = '';
+                                FFAppState().onbEmail = '';
+                                FFAppState().onbPhone = '';
+                                FFAppState().onbDob = null;
+                                FFAppState().onbStreet1 = '';
+                                FFAppState().onbStreet2 = '';
+                                FFAppState().onbCity = '';
+                                FFAppState().onbState = '';
+                                FFAppState().onbPostcode = '';
+                                FFAppState().onbCountry = '';
+                                FFAppState().onbAccountHolderName = '';
+                                FFAppState().onbBsb = '';
+                                FFAppState().onbAccountNumber = '';
+                                FFAppState().onbUsage = '';
+                                FFAppState().onbConsentAccepted = false;
+                                FFAppState().isRegistrationComplete = false;
+                                safeSetState(() {});
                               }
 
                               _navigate();
@@ -118,50 +144,57 @@ class _Page1WidgetState extends State<Page1Widget> {
                           ),
                         ],
                       ),
-                    Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 60.0,
-                          height: 60.0,
-                          decoration: BoxDecoration(
-                            color: FlutterFlowTheme.of(context).info,
-                            borderRadius: BorderRadius.circular(8.0),
-                            border: Border.all(
+                    Align(
+                      alignment: AlignmentDirectional(0.0, 0.0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 60.0,
+                            height: 60.0,
+                            decoration: BoxDecoration(
                               color: FlutterFlowTheme.of(context).info,
-                            ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8.0),
-                            child: Image.asset(
-                              'assets/images/ChatGPT_Image_Feb_2,_2026,_02_47_57_PM.png',
-                              width: 200.0,
-                              height: 200.0,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          'SplitStack',
-                          style: FlutterFlowTheme.of(context)
-                              .headlineLarge
-                              .override(
-                                font: GoogleFonts.interTight(
-                                  fontWeight: FontWeight.w600,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .headlineLarge
-                                      .fontStyle,
-                                ),
-                                color: Color(0xFF121212),
-                                letterSpacing: 0.0,
-                                fontWeight: FontWeight.w600,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .headlineLarge
-                                    .fontStyle,
+                              borderRadius: BorderRadius.circular(8.0),
+                              border: Border.all(
+                                color: FlutterFlowTheme.of(context).info,
                               ),
-                        ),
-                      ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8.0),
+                              child: Image.asset(
+                                'assets/images/ChatGPT_Image_Feb_2,_2026,_02_47_57_PM.png',
+                                width: 200.0,
+                                height: 200.0,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: EdgeInsetsDirectional.fromSTEB(
+                                0.0, 0.0, 22.0, 0.0),
+                            child: Text(
+                              'SplitStack',
+                              style: FlutterFlowTheme.of(context)
+                                  .headlineLarge
+                                  .override(
+                                    font: GoogleFonts.interTight(
+                                      fontWeight: FontWeight.w600,
+                                      fontStyle: FlutterFlowTheme.of(context)
+                                          .headlineLarge
+                                          .fontStyle,
+                                    ),
+                                    color: Color(0xFF121212),
+                                    letterSpacing: 0.0,
+                                    fontWeight: FontWeight.w600,
+                                    fontStyle: FlutterFlowTheme.of(context)
+                                        .headlineLarge
+                                        .fontStyle,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     Align(
                       alignment: AlignmentDirectional(0.0, -1.0),
@@ -169,18 +202,14 @@ class _Page1WidgetState extends State<Page1Widget> {
                         'Split group expenses instantly',
                         style: FlutterFlowTheme.of(context).bodyLarge.override(
                               font: GoogleFonts.inter(
-                                fontWeight: FlutterFlowTheme.of(context)
-                                    .bodyLarge
-                                    .fontWeight,
+                                fontWeight: FontWeight.w500,
                                 fontStyle: FlutterFlowTheme.of(context)
                                     .bodyLarge
                                     .fontStyle,
                               ),
                               color: Color(0xFF121212),
                               letterSpacing: 0.0,
-                              fontWeight: FlutterFlowTheme.of(context)
-                                  .bodyLarge
-                                  .fontWeight,
+                              fontWeight: FontWeight.w500,
                               fontStyle: FlutterFlowTheme.of(context)
                                   .bodyLarge
                                   .fontStyle,
@@ -440,39 +469,22 @@ class _Page1WidgetState extends State<Page1Widget> {
                     FFButtonWidget(
                       onPressed: () async {
                         if (loggedIn) {
-                          FFAppState().participants = [];
-                          FFAppState().stackid = '';
+                          _model.isCreatingStack = true;
                           safeSetState(() {});
+                          _model.ensureConnectResponse =
+                              await EnsureConnectAccountCall.call();
+
+                          if (EnsureConnectAccountCall.status(
+                                (_model.ensureConnectResponse?.jsonBody ?? ''),
+                              ) ==
+                              'needs_onboarding') {}
 
                           context.pushNamed(Page2Widget.routeName);
                         } else {
-                          var confirmDialogResponse = await showDialog<bool>(
-                                context: context,
-                                builder: (alertDialogContext) {
-                                  return AlertDialog(
-                                    title: Text('Login Required'),
-                                    content: Text(
-                                        'To create a stack you must need to sign in first.'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(
-                                            alertDialogContext, false),
-                                        child: Text('Not Now'),
-                                      ),
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(
-                                            alertDialogContext, true),
-                                        child: Text('Sign In'),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ) ??
-                              false;
-                          if (confirmDialogResponse) {
-                            context.pushNamed(Auth2Widget.routeName);
-                          }
+                          context.pushNamed(NewOrReturningPageWidget.routeName);
                         }
+
+                        safeSetState(() {});
                       },
                       text: '+ Create New Stack',
                       options: FFButtonOptions(
@@ -501,7 +513,6 @@ class _Page1WidgetState extends State<Page1Widget> {
                                       .titleMedium
                                       .fontStyle,
                                 ),
-                        elevation: 0.0,
                         borderRadius: BorderRadius.circular(8.0),
                       ),
                     ),
@@ -534,14 +545,586 @@ class _Page1WidgetState extends State<Page1Widget> {
                         ),
                       ].divide(SizedBox(width: 8.0)),
                     ),
+                    if (false)
+                      Builder(
+                        builder: (context) {
+                          if (loggedIn) {
+                            return StreamBuilder<List<StacksRecord>>(
+                              stream: queryStacksRecord(
+                                queryBuilder: (stacksRecord) => stacksRecord
+                                    .where(
+                                      'organiser_id',
+                                      isEqualTo: currentUserUid,
+                                    )
+                                    .where(
+                                      'createAndShare',
+                                      isEqualTo: true,
+                                    ),
+                              ),
+                              builder: (context, snapshot) {
+                                // Customize what your widget looks like when it's loading.
+                                if (!snapshot.hasData) {
+                                  return Center(
+                                    child: SizedBox(
+                                      width: 50.0,
+                                      height: 50.0,
+                                      child: CircularProgressIndicator(
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          FlutterFlowTheme.of(context).primary,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                List<StacksRecord> listViewStacksRecordList =
+                                    snapshot.data!;
+                                if (listViewStacksRecordList.isEmpty) {
+                                  return EmptyListWidget();
+                                }
+
+                                return ListView.separated(
+                                  padding: EdgeInsets.zero,
+                                  primary: false,
+                                  shrinkWrap: true,
+                                  scrollDirection: Axis.vertical,
+                                  itemCount: listViewStacksRecordList.length,
+                                  separatorBuilder: (_, __) =>
+                                      SizedBox(height: 10.0),
+                                  itemBuilder: (context, listViewIndex) {
+                                    final listViewStacksRecord =
+                                        listViewStacksRecordList[listViewIndex];
+                                    return FutureBuilder<int>(
+                                      future: queryParticipantsRecordCount(
+                                        queryBuilder: (participantsRecord) =>
+                                            participantsRecord
+                                                .where(
+                                                  'stack_id',
+                                                  isEqualTo:
+                                                      listViewStacksRecord
+                                                          .reference,
+                                                )
+                                                .where(
+                                                  'paid_status',
+                                                  isEqualTo: false,
+                                                ),
+                                      ),
+                                      builder: (context, snapshot) {
+                                        // Customize what your widget looks like when it's loading.
+                                        if (!snapshot.hasData) {
+                                          return Center(
+                                            child: SizedBox(
+                                              width: 50.0,
+                                              height: 50.0,
+                                              child: CircularProgressIndicator(
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                        Color>(
+                                                  FlutterFlowTheme.of(context)
+                                                      .primary,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                        int containerCount = snapshot.data!;
+
+                                        return InkWell(
+                                          splashColor: Colors.transparent,
+                                          focusColor: Colors.transparent,
+                                          hoverColor: Colors.transparent,
+                                          highlightColor: Colors.transparent,
+                                          onTap: () async {
+                                            context.pushNamed(
+                                              Page4Widget.routeName,
+                                              queryParameters: {
+                                                'doc': serializeParam(
+                                                  listViewStacksRecord
+                                                      .reference,
+                                                  ParamType.DocumentReference,
+                                                ),
+                                              }.withoutNulls,
+                                            );
+                                          },
+                                          child: Container(
+                                            width: double.infinity,
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  FlutterFlowTheme.of(context)
+                                                      .secondaryBackground,
+                                              borderRadius:
+                                                  BorderRadius.circular(8.0),
+                                              border: Border.all(
+                                                color:
+                                                    FlutterFlowTheme.of(context)
+                                                        .alternate,
+                                                width: 1.0,
+                                              ),
+                                            ),
+                                            child: Padding(
+                                              padding: EdgeInsetsDirectional
+                                                  .fromSTEB(
+                                                      12.0, 10.0, 12.0, 10.0),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.max,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.max,
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Text(
+                                                        listViewStacksRecord
+                                                            .stackFor,
+                                                        style:
+                                                            FlutterFlowTheme.of(
+                                                                    context)
+                                                                .titleMedium
+                                                                .override(
+                                                                  font: GoogleFonts
+                                                                      .interTight(
+                                                                    fontWeight: FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .titleMedium
+                                                                        .fontWeight,
+                                                                    fontStyle: FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .titleMedium
+                                                                        .fontStyle,
+                                                                  ),
+                                                                  color: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .primaryText,
+                                                                  letterSpacing:
+                                                                      0.0,
+                                                                  fontWeight: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .titleMedium
+                                                                      .fontWeight,
+                                                                  fontStyle: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .titleMedium
+                                                                      .fontStyle,
+                                                                ),
+                                                      ),
+                                                      Builder(
+                                                        builder: (context) {
+                                                          if (containerCount ==
+                                                              0) {
+                                                            return Container(
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: Color(
+                                                                    0xFFE8F1E9),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            4.0),
+                                                                border:
+                                                                    Border.all(
+                                                                  color: Color(
+                                                                      0xFF16A149),
+                                                                ),
+                                                              ),
+                                                              child: Padding(
+                                                                padding:
+                                                                    EdgeInsetsDirectional
+                                                                        .fromSTEB(
+                                                                            8.0,
+                                                                            4.0,
+                                                                            8.0,
+                                                                            4.0),
+                                                                child: Text(
+                                                                  'Paid',
+                                                                  style: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .labelSmall
+                                                                      .override(
+                                                                        font: GoogleFonts
+                                                                            .inter(
+                                                                          fontWeight: FlutterFlowTheme.of(context)
+                                                                              .labelSmall
+                                                                              .fontWeight,
+                                                                          fontStyle: FlutterFlowTheme.of(context)
+                                                                              .labelSmall
+                                                                              .fontStyle,
+                                                                        ),
+                                                                        color: FlutterFlowTheme.of(context)
+                                                                            .secondaryText,
+                                                                        letterSpacing:
+                                                                            0.0,
+                                                                        fontWeight: FlutterFlowTheme.of(context)
+                                                                            .labelSmall
+                                                                            .fontWeight,
+                                                                        fontStyle: FlutterFlowTheme.of(context)
+                                                                            .labelSmall
+                                                                            .fontStyle,
+                                                                      ),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          } else {
+                                                            return Builder(
+                                                              builder:
+                                                                  (context) =>
+                                                                      InkWell(
+                                                                splashColor: Colors
+                                                                    .transparent,
+                                                                focusColor: Colors
+                                                                    .transparent,
+                                                                hoverColor: Colors
+                                                                    .transparent,
+                                                                highlightColor:
+                                                                    Colors
+                                                                        .transparent,
+                                                                onTap:
+                                                                    () async {
+                                                                  await showDialog(
+                                                                    context:
+                                                                        context,
+                                                                    builder:
+                                                                        (dialogContext) {
+                                                                      return Dialog(
+                                                                        elevation:
+                                                                            0,
+                                                                        insetPadding:
+                                                                            EdgeInsets.zero,
+                                                                        backgroundColor:
+                                                                            Colors.transparent,
+                                                                        alignment:
+                                                                            AlignmentDirectional(0.0, 0.0).resolve(Directionality.of(context)),
+                                                                        child:
+                                                                            GestureDetector(
+                                                                          onTap:
+                                                                              () {
+                                                                            FocusScope.of(dialogContext).unfocus();
+                                                                            FocusManager.instance.primaryFocus?.unfocus();
+                                                                          },
+                                                                          child:
+                                                                              StackDeleteWidget(
+                                                                            stackRefrence:
+                                                                                listViewStacksRecord.reference,
+                                                                          ),
+                                                                        ),
+                                                                      );
+                                                                    },
+                                                                  );
+                                                                },
+                                                                child:
+                                                                    Container(
+                                                                  width: 35.0,
+                                                                  height: 35.0,
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: Color(
+                                                                        0x0EFF0002),
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            30.0),
+                                                                    border:
+                                                                        Border
+                                                                            .all(
+                                                                      color: Color(
+                                                                          0xFFFF0002),
+                                                                    ),
+                                                                  ),
+                                                                  child: Icon(
+                                                                    Icons
+                                                                        .delete_outline,
+                                                                    color: Color(
+                                                                        0xFFFF0002),
+                                                                    size: 20.0,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            );
+                                                          }
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  Text(
+                                                    dateTimeFormat(
+                                                        "yMMMd",
+                                                        listViewStacksRecord
+                                                            .createdAt!),
+                                                    style: FlutterFlowTheme.of(
+                                                            context)
+                                                        .bodySmall
+                                                        .override(
+                                                          font:
+                                                              GoogleFonts.inter(
+                                                            fontWeight:
+                                                                FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .bodySmall
+                                                                    .fontWeight,
+                                                            fontStyle:
+                                                                FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .bodySmall
+                                                                    .fontStyle,
+                                                          ),
+                                                          color: FlutterFlowTheme
+                                                                  .of(context)
+                                                              .secondaryText,
+                                                          letterSpacing: 0.0,
+                                                          fontWeight:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .bodySmall
+                                                                  .fontWeight,
+                                                          fontStyle:
+                                                              FlutterFlowTheme.of(
+                                                                      context)
+                                                                  .bodySmall
+                                                                  .fontStyle,
+                                                        ),
+                                                  ),
+                                                  StreamBuilder<
+                                                      List<ParticipantsRecord>>(
+                                                    stream:
+                                                        queryParticipantsRecord(
+                                                      queryBuilder:
+                                                          (participantsRecord) =>
+                                                              participantsRecord
+                                                                  .where(
+                                                                    'stack_id',
+                                                                    isEqualTo:
+                                                                        listViewStacksRecord
+                                                                            .reference,
+                                                                  )
+                                                                  .where(
+                                                                    'isOrganiser',
+                                                                    isEqualTo:
+                                                                        true,
+                                                                  ),
+                                                      singleRecord: true,
+                                                    ),
+                                                    builder:
+                                                        (context, snapshot) {
+                                                      // Customize what your widget looks like when it's loading.
+                                                      if (!snapshot.hasData) {
+                                                        return Center(
+                                                          child: SizedBox(
+                                                            width: 50.0,
+                                                            height: 50.0,
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                              valueColor:
+                                                                  AlwaysStoppedAnimation<
+                                                                      Color>(
+                                                                FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .primary,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }
+                                                      List<ParticipantsRecord>
+                                                          rowParticipantsRecordList =
+                                                          snapshot.data!;
+                                                      // Return an empty Container when the item does not exist.
+                                                      if (snapshot
+                                                          .data!.isEmpty) {
+                                                        return Container();
+                                                      }
+                                                      final rowParticipantsRecord =
+                                                          rowParticipantsRecordList
+                                                                  .isNotEmpty
+                                                              ? rowParticipantsRecordList
+                                                                  .first
+                                                              : null;
+
+                                                      return Row(
+                                                        mainAxisSize:
+                                                            MainAxisSize.max,
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        children: [
+                                                          Text(
+                                                            'Total: ${valueOrDefault<String>(
+                                                              FFAppState()
+                                                                  .currencyList
+                                                                  .where((e) =>
+                                                                      e.code ==
+                                                                      listViewStacksRecord
+                                                                          .currency)
+                                                                  .toList()
+                                                                  .firstOrNull
+                                                                  ?.symbol,
+                                                              '\$',
+                                                            )}${formatNumber(
+                                                              listViewStacksRecord
+                                                                  .totalAmount,
+                                                              formatType:
+                                                                  FormatType
+                                                                      .custom,
+                                                              format:
+                                                                  '#,##0.00',
+                                                              locale: '',
+                                                            )}',
+                                                            style: FlutterFlowTheme
+                                                                    .of(context)
+                                                                .bodyMedium
+                                                                .override(
+                                                                  font:
+                                                                      GoogleFonts
+                                                                          .inter(
+                                                                    fontWeight: FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .bodyMedium
+                                                                        .fontWeight,
+                                                                    fontStyle: FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .bodyMedium
+                                                                        .fontStyle,
+                                                                  ),
+                                                                  color: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .primaryText,
+                                                                  letterSpacing:
+                                                                      0.0,
+                                                                  fontWeight: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .bodyMedium
+                                                                      .fontWeight,
+                                                                  fontStyle: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .bodyMedium
+                                                                      .fontStyle,
+                                                                ),
+                                                          ),
+                                                          if (rowParticipantsRecord
+                                                                  ?.amount !=
+                                                              null)
+                                                            Text(
+                                                              valueOrDefault<
+                                                                  String>(
+                                                                'Your share: ${valueOrDefault<String>(
+                                                                  FFAppState()
+                                                                      .currencyList
+                                                                      .where((e) =>
+                                                                          e.code ==
+                                                                          listViewStacksRecord
+                                                                              .currency)
+                                                                      .toList()
+                                                                      .firstOrNull
+                                                                      ?.symbol,
+                                                                  '\$',
+                                                                )}${formatNumber(
+                                                                  rowParticipantsRecord
+                                                                      ?.amount,
+                                                                  formatType:
+                                                                      FormatType
+                                                                          .custom,
+                                                                  format:
+                                                                      '#,##0.00',
+                                                                  locale: '',
+                                                                )}',
+                                                                '0.0',
+                                                              ),
+                                                              style: FlutterFlowTheme
+                                                                      .of(context)
+                                                                  .bodyMedium
+                                                                  .override(
+                                                                    font: GoogleFonts
+                                                                        .inter(
+                                                                      fontWeight: FlutterFlowTheme.of(
+                                                                              context)
+                                                                          .bodyMedium
+                                                                          .fontWeight,
+                                                                      fontStyle: FlutterFlowTheme.of(
+                                                                              context)
+                                                                          .bodyMedium
+                                                                          .fontStyle,
+                                                                    ),
+                                                                    color: Color(
+                                                                        0xFF14181B),
+                                                                    letterSpacing:
+                                                                        0.0,
+                                                                    fontWeight: FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .bodyMedium
+                                                                        .fontWeight,
+                                                                    fontStyle: FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .bodyMedium
+                                                                        .fontStyle,
+                                                                  ),
+                                                            ),
+                                                        ],
+                                                      );
+                                                    },
+                                                  ),
+                                                  if (containerCount == 0)
+                                                    Text(
+                                                      'Settled',
+                                                      style:
+                                                          FlutterFlowTheme.of(
+                                                                  context)
+                                                              .labelSmall
+                                                              .override(
+                                                                font:
+                                                                    GoogleFonts
+                                                                        .inter(
+                                                                  fontWeight: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .labelSmall
+                                                                      .fontWeight,
+                                                                  fontStyle: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .labelSmall
+                                                                      .fontStyle,
+                                                                ),
+                                                                color: Color(
+                                                                    0xFF16A149),
+                                                                letterSpacing:
+                                                                    0.0,
+                                                                fontWeight: FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .labelSmall
+                                                                    .fontWeight,
+                                                                fontStyle: FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .labelSmall
+                                                                    .fontStyle,
+                                                              ),
+                                                    ),
+                                                ].divide(SizedBox(height: 2.0)),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          } else {
+                            return wrapWithModel(
+                              model: _model.emptyListModel1,
+                              updateCallback: () => safeSetState(() {}),
+                              child: EmptyListWidget(),
+                            );
+                          }
+                        },
+                      ),
                     Builder(
                       builder: (context) {
                         if (loggedIn) {
-                          return StreamBuilder<List<StackRecord>>(
-                            stream: queryStackRecord(
-                              queryBuilder: (stackRecord) => stackRecord
+                          return StreamBuilder<List<StacksRecord>>(
+                            stream: queryStacksRecord(
+                              queryBuilder: (stacksRecord) => stacksRecord
                                   .where(
-                                    'userID',
+                                    'organiser_id',
                                     isEqualTo: currentUserUid,
                                   )
                                   .where(
@@ -564,9 +1147,9 @@ class _Page1WidgetState extends State<Page1Widget> {
                                   ),
                                 );
                               }
-                              List<StackRecord> listViewStackRecordList =
+                              List<StacksRecord> listViewStacksRecordList =
                                   snapshot.data!;
-                              if (listViewStackRecordList.isEmpty) {
+                              if (listViewStacksRecordList.isEmpty) {
                                 return EmptyListWidget();
                               }
 
@@ -575,346 +1158,16 @@ class _Page1WidgetState extends State<Page1Widget> {
                                 primary: false,
                                 shrinkWrap: true,
                                 scrollDirection: Axis.vertical,
-                                itemCount: listViewStackRecordList.length,
+                                itemCount: listViewStacksRecordList.length,
                                 separatorBuilder: (_, __) =>
                                     SizedBox(height: 10.0),
                                 itemBuilder: (context, listViewIndex) {
-                                  final listViewStackRecord =
-                                      listViewStackRecordList[listViewIndex];
-                                  return InkWell(
-                                    splashColor: Colors.transparent,
-                                    focusColor: Colors.transparent,
-                                    hoverColor: Colors.transparent,
-                                    highlightColor: Colors.transparent,
-                                    onTap: () async {
-                                      context.pushNamed(
-                                        Page4Widget.routeName,
-                                        queryParameters: {
-                                          'doc': serializeParam(
-                                            listViewStackRecord.reference,
-                                            ParamType.DocumentReference,
-                                          ),
-                                        }.withoutNulls,
-                                      );
-                                    },
-                                    child: Container(
-                                      width: double.infinity,
-                                      decoration: BoxDecoration(
-                                        color: FlutterFlowTheme.of(context)
-                                            .secondaryBackground,
-                                        borderRadius:
-                                            BorderRadius.circular(8.0),
-                                        border: Border.all(
-                                          color: FlutterFlowTheme.of(context)
-                                              .alternate,
-                                          width: 1.0,
-                                        ),
-                                      ),
-                                      child: Padding(
-                                        padding: EdgeInsetsDirectional.fromSTEB(
-                                            12.0, 10.0, 12.0, 10.0),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.max,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              mainAxisSize: MainAxisSize.max,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  listViewStackRecord.stackFor,
-                                                  style: FlutterFlowTheme.of(
-                                                          context)
-                                                      .titleMedium
-                                                      .override(
-                                                        font: GoogleFonts
-                                                            .interTight(
-                                                          fontWeight:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .titleMedium
-                                                                  .fontWeight,
-                                                          fontStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .titleMedium
-                                                                  .fontStyle,
-                                                        ),
-                                                        color:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .primaryText,
-                                                        letterSpacing: 0.0,
-                                                        fontWeight:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .titleMedium
-                                                                .fontWeight,
-                                                        fontStyle:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .titleMedium
-                                                                .fontStyle,
-                                                      ),
-                                                ),
-                                                if (listViewStackRecord
-                                                        .participants.length ==
-                                                    listViewStackRecord
-                                                        .participants
-                                                        .where((e) =>
-                                                            e.paidStatus ==
-                                                            true)
-                                                        .toList()
-                                                        .length)
-                                                  Container(
-                                                    decoration: BoxDecoration(
-                                                      color: Color(0xFFE8F1E9),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              4.0),
-                                                      border: Border.all(
-                                                        color:
-                                                            Color(0xFF16A149),
-                                                      ),
-                                                    ),
-                                                    child: Padding(
-                                                      padding:
-                                                          EdgeInsetsDirectional
-                                                              .fromSTEB(
-                                                                  8.0,
-                                                                  4.0,
-                                                                  8.0,
-                                                                  4.0),
-                                                      child: Text(
-                                                        'Paid',
-                                                        style:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .labelSmall
-                                                                .override(
-                                                                  font:
-                                                                      GoogleFonts
-                                                                          .inter(
-                                                                    fontWeight: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .labelSmall
-                                                                        .fontWeight,
-                                                                    fontStyle: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .labelSmall
-                                                                        .fontStyle,
-                                                                  ),
-                                                                  color: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .secondaryText,
-                                                                  letterSpacing:
-                                                                      0.0,
-                                                                  fontWeight: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .labelSmall
-                                                                      .fontWeight,
-                                                                  fontStyle: FlutterFlowTheme.of(
-                                                                          context)
-                                                                      .labelSmall
-                                                                      .fontStyle,
-                                                                ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                            Text(
-                                              dateTimeFormat(
-                                                  "yMMMd",
-                                                  listViewStackRecord
-                                                      .createdAt!),
-                                              style:
-                                                  FlutterFlowTheme.of(context)
-                                                      .bodySmall
-                                                      .override(
-                                                        font: GoogleFonts.inter(
-                                                          fontWeight:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodySmall
-                                                                  .fontWeight,
-                                                          fontStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodySmall
-                                                                  .fontStyle,
-                                                        ),
-                                                        color:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .secondaryText,
-                                                        letterSpacing: 0.0,
-                                                        fontWeight:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodySmall
-                                                                .fontWeight,
-                                                        fontStyle:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodySmall
-                                                                .fontStyle,
-                                                      ),
-                                            ),
-                                            Row(
-                                              mainAxisSize: MainAxisSize.max,
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Text(
-                                                  'Total: ${formatNumber(
-                                                    listViewStackRecord.amount,
-                                                    formatType:
-                                                        FormatType.custom,
-                                                    currency: '\$',
-                                                    format: '#,##0.00',
-                                                    locale: '',
-                                                  )}',
-                                                  style: FlutterFlowTheme.of(
-                                                          context)
-                                                      .bodyMedium
-                                                      .override(
-                                                        font: GoogleFonts.inter(
-                                                          fontWeight:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontWeight,
-                                                          fontStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontStyle,
-                                                        ),
-                                                        color:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .primaryText,
-                                                        letterSpacing: 0.0,
-                                                        fontWeight:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyMedium
-                                                                .fontWeight,
-                                                        fontStyle:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyMedium
-                                                                .fontStyle,
-                                                      ),
-                                                ),
-                                                if (listViewStackRecord
-                                                    .participants
-                                                    .where((e) =>
-                                                        e.userID ==
-                                                        currentUserUid)
-                                                    .toList()
-                                                    .isNotEmpty)
-                                                  Text(
-                                                    valueOrDefault<String>(
-                                                      'Your share: ${formatNumber(
-                                                        listViewStackRecord
-                                                            .participants
-                                                            .where((e) =>
-                                                                e.userID ==
-                                                                currentUserUid)
-                                                            .toList()
-                                                            .firstOrNull
-                                                            ?.amount,
-                                                        formatType:
-                                                            FormatType.custom,
-                                                        currency: '\$',
-                                                        format: '#,##0.00',
-                                                        locale: '',
-                                                      )}',
-                                                      '0.0',
-                                                    ),
-                                                    style: FlutterFlowTheme.of(
-                                                            context)
-                                                        .bodyMedium
-                                                        .override(
-                                                          font:
-                                                              GoogleFonts.inter(
-                                                            fontWeight:
-                                                                FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .fontWeight,
-                                                            fontStyle:
-                                                                FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .fontStyle,
-                                                          ),
-                                                          color:
-                                                              Color(0xFF14181B),
-                                                          letterSpacing: 0.0,
-                                                          fontWeight:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontWeight,
-                                                          fontStyle:
-                                                              FlutterFlowTheme.of(
-                                                                      context)
-                                                                  .bodyMedium
-                                                                  .fontStyle,
-                                                        ),
-                                                  ),
-                                              ],
-                                            ),
-                                            if (listViewStackRecord
-                                                    .participants.length ==
-                                                listViewStackRecord.participants
-                                                    .where((e) =>
-                                                        e.paidStatus == true)
-                                                    .toList()
-                                                    .length)
-                                              Text(
-                                                'Settled',
-                                                style: FlutterFlowTheme.of(
-                                                        context)
-                                                    .labelSmall
-                                                    .override(
-                                                      font: GoogleFonts.inter(
-                                                        fontWeight:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .labelSmall
-                                                                .fontWeight,
-                                                        fontStyle:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .labelSmall
-                                                                .fontStyle,
-                                                      ),
-                                                      color: Color(0xFF16A149),
-                                                      letterSpacing: 0.0,
-                                                      fontWeight:
-                                                          FlutterFlowTheme.of(
-                                                                  context)
-                                                              .labelSmall
-                                                              .fontWeight,
-                                                      fontStyle:
-                                                          FlutterFlowTheme.of(
-                                                                  context)
-                                                              .labelSmall
-                                                              .fontStyle,
-                                                    ),
-                                              ),
-                                          ].divide(SizedBox(height: 2.0)),
-                                        ),
-                                      ),
-                                    ),
+                                  final listViewStacksRecord =
+                                      listViewStacksRecordList[listViewIndex];
+                                  return custom_widgets.RecentStackRowSwipe(
+                                    width: double.infinity,
+                                    height: 100.0,
+                                    stack: listViewStacksRecord,
                                   );
                                 },
                               );
@@ -922,7 +1175,7 @@ class _Page1WidgetState extends State<Page1Widget> {
                           );
                         } else {
                           return wrapWithModel(
-                            model: _model.emptyListModel,
+                            model: _model.emptyListModel2,
                             updateCallback: () => safeSetState(() {}),
                             child: EmptyListWidget(),
                           );

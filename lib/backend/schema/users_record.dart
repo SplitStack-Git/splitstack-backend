@@ -45,6 +45,46 @@ class UsersRecord extends FirestoreRecord {
   DateTime? get createdAt => _createdAt;
   bool hasCreatedAt() => _createdAt != null;
 
+  // "email" field.
+  String? _email;
+  String get email => _email ?? '';
+  bool hasEmail() => _email != null;
+
+  // "date_of_birth" field.
+  DateTime? _dateOfBirth;
+  DateTime? get dateOfBirth => _dateOfBirth;
+  bool hasDateOfBirth() => _dateOfBirth != null;
+
+  // "display_name" field.
+  String? _displayName;
+  String get displayName => _displayName ?? '';
+  bool hasDisplayName() => _displayName != null;
+
+  // "photo_url" field.
+  String? _photoUrl;
+  String get photoUrl => _photoUrl ?? '';
+  bool hasPhotoUrl() => _photoUrl != null;
+
+  // "uid" field.
+  String? _uid;
+  String get uid => _uid ?? '';
+  bool hasUid() => _uid != null;
+
+  // "created_time" field.
+  DateTime? _createdTime;
+  DateTime? get createdTime => _createdTime;
+  bool hasCreatedTime() => _createdTime != null;
+
+  // "phone_number" field.
+  String? _phoneNumber;
+  String get phoneNumber => _phoneNumber ?? '';
+  bool hasPhoneNumber() => _phoneNumber != null;
+
+  // "is_registered" field.
+  bool? _isRegistered;
+  bool get isRegistered => _isRegistered ?? false;
+  bool hasIsRegistered() => _isRegistered != null;
+
   void _initializeFields() {
     _userId = snapshotData['user_id'] as String?;
     _name = snapshotData['name'] as String?;
@@ -52,6 +92,14 @@ class UsersRecord extends FirestoreRecord {
     _stripeAccountId = snapshotData['stripe_account_id'] as String?;
     _hasSeenGetPaid = snapshotData['has_seen_get_paid'] as bool?;
     _createdAt = snapshotData['created_at'] as DateTime?;
+    _email = snapshotData['email'] as String?;
+    _dateOfBirth = snapshotData['date_of_birth'] as DateTime?;
+    _displayName = snapshotData['display_name'] as String?;
+    _photoUrl = snapshotData['photo_url'] as String?;
+    _uid = snapshotData['uid'] as String?;
+    _createdTime = snapshotData['created_time'] as DateTime?;
+    _phoneNumber = snapshotData['phone_number'] as String?;
+    _isRegistered = snapshotData['is_registered'] as bool?;
   }
 
   static CollectionReference get collection =>
@@ -94,6 +142,14 @@ Map<String, dynamic> createUsersRecordData({
   String? stripeAccountId,
   bool? hasSeenGetPaid,
   DateTime? createdAt,
+  String? email,
+  DateTime? dateOfBirth,
+  String? displayName,
+  String? photoUrl,
+  String? uid,
+  DateTime? createdTime,
+  String? phoneNumber,
+  bool? isRegistered,
 }) {
   final firestoreData = mapToFirestore(
     <String, dynamic>{
@@ -103,6 +159,14 @@ Map<String, dynamic> createUsersRecordData({
       'stripe_account_id': stripeAccountId,
       'has_seen_get_paid': hasSeenGetPaid,
       'created_at': createdAt,
+      'email': email,
+      'date_of_birth': dateOfBirth,
+      'display_name': displayName,
+      'photo_url': photoUrl,
+      'uid': uid,
+      'created_time': createdTime,
+      'phone_number': phoneNumber,
+      'is_registered': isRegistered,
     }.withoutNulls,
   );
 
@@ -119,7 +183,15 @@ class UsersRecordDocumentEquality implements Equality<UsersRecord> {
         e1?.phone == e2?.phone &&
         e1?.stripeAccountId == e2?.stripeAccountId &&
         e1?.hasSeenGetPaid == e2?.hasSeenGetPaid &&
-        e1?.createdAt == e2?.createdAt;
+        e1?.createdAt == e2?.createdAt &&
+        e1?.email == e2?.email &&
+        e1?.dateOfBirth == e2?.dateOfBirth &&
+        e1?.displayName == e2?.displayName &&
+        e1?.photoUrl == e2?.photoUrl &&
+        e1?.uid == e2?.uid &&
+        e1?.createdTime == e2?.createdTime &&
+        e1?.phoneNumber == e2?.phoneNumber &&
+        e1?.isRegistered == e2?.isRegistered;
   }
 
   @override
@@ -129,7 +201,15 @@ class UsersRecordDocumentEquality implements Equality<UsersRecord> {
         e?.phone,
         e?.stripeAccountId,
         e?.hasSeenGetPaid,
-        e?.createdAt
+        e?.createdAt,
+        e?.email,
+        e?.dateOfBirth,
+        e?.displayName,
+        e?.photoUrl,
+        e?.uid,
+        e?.createdTime,
+        e?.phoneNumber,
+        e?.isRegistered
       ]);
 
   @override

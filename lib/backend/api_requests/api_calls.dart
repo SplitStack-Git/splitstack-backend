@@ -15,39 +15,18 @@ class CreateCheckoutSessionCall {
     String? currency = 'AUD',
     String? stackId = '',
     String? participantId = '',
-    String? organiserAccountId = '',
     String? successUrl = '',
     String? cancelUrl = '',
   }) async {
-    // Build JSON body dynamically using actual parameters
-    final requestBodyMap = <String, dynamic>{
-      'amount_cents': amountCents ?? 0,
-      'currency': (currency ?? 'AUD').toLowerCase(),
-      'stack_id': stackId ?? '',
-    };
-    
-    // Only include optional fields if they are provided
-    if (participantId != null && participantId!.isNotEmpty) {
-      requestBodyMap['participant_id'] = participantId!;
-    }
-    if (organiserAccountId != null && organiserAccountId!.isNotEmpty) {
-      requestBodyMap['organiser_account_id'] = organiserAccountId!;
-    }
-    if (successUrl != null && successUrl!.isNotEmpty) {
-      requestBodyMap['success_url'] = successUrl!;
-    }
-    if (cancelUrl != null && cancelUrl!.isNotEmpty) {
-      requestBodyMap['cancel_url'] = cancelUrl!;
-    }
-    
-    final ffApiRequestBody = json.encode(requestBodyMap);
-    
-    // Debug: Log the amount being sent to Stripe
-    if (kDebugMode) {
-      print('Stripe Checkout - Amount: ${amountCents ?? 0} cents (${(amountCents ?? 0) / 100} ${currency ?? 'AUD'})');
-      print('Stripe Checkout - Request Body: $ffApiRequestBody');
-    }
-    
+    final ffApiRequestBody = '''
+{
+  "amount_cents": ${amountCents},
+  "currency": "aud",
+  "stack_id": "x7dguMEIFvyXB3Xzb6JS",
+  "participant_id": "${escapeStringForJson(participantId)}",
+  "success_url": "${escapeStringForJson(successUrl)}",
+  "cancel_url": "${escapeStringForJson(cancelUrl)}"
+}''';
     return ApiManager.instance.makeApiCall(
       callName: 'CreateCheckoutSession',
       apiUrl:
@@ -73,6 +52,101 @@ class CreateCheckoutSessionCall {
         response,
         r'''$.checkout_url''',
       ));
+}
+
+class EnsureConnectAccountCall {
+  static Future<ApiCallResponse> call() async {
+    final ffApiRequestBody = '''
+{
+  "organiser_id": "[currentUserUid]"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'EnsureConnectAccount',
+      apiUrl:
+          'https://splitstack-backend.vercel.app/api/ensure-connect-account',
+      callType: ApiCallType.POST,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
+
+  static String? status(dynamic response) => castToType<String>(getJsonField(
+        response,
+        r'''$.status''',
+      ));
+  static String? onboardingurl(dynamic response) =>
+      castToType<String>(getJsonField(
+        response,
+        r'''$.onboarding_url''',
+      ));
+}
+
+class SubmitStripeOnboardingCall {
+  static Future<ApiCallResponse> call({
+    String? currentUserId = '',
+    String? onbFirstName = '',
+    String? onbLastName = '',
+    String? onbEmail = '',
+    String? onbPhone = '',
+    String? onbDob = '',
+    String? onbStreet1 = '',
+    String? onbStreet2 = '',
+    String? onbCity = '',
+    String? onbState = '',
+    String? onbPostcode = '',
+    String? onbCountry = '',
+    String? onbAccountHolderName = '',
+    String? onbBsb = '',
+    String? onbAccountNumber = '',
+    String? onbUsage = '',
+    bool? onbConsentAccepted,
+  }) async {
+    final ffApiRequestBody = '''
+{
+  "userId": "${escapeStringForJson(currentUserId)}",
+  "onbFirstName": "${escapeStringForJson(onbFirstName)}",
+  "onbLastName": "${escapeStringForJson(onbLastName)}",
+  "onbEmail": "${escapeStringForJson(onbEmail)}",
+  "onbPhone": "${escapeStringForJson(onbPhone)}",
+  "onbDob": "${escapeStringForJson(onbDob)}",
+  "onbStreet1": "${escapeStringForJson(onbStreet1)}",
+  "onbStreet2": "${escapeStringForJson(onbStreet2)}",
+  "onbCity": "${escapeStringForJson(onbCity)}",
+  "onbState": "${escapeStringForJson(onbState)}",
+  "onbPostcode": "${escapeStringForJson(onbPostcode)}",
+  "onbCountry": "${escapeStringForJson(onbCountry)}",
+  "onbAccountHolderName": "${escapeStringForJson(onbAccountHolderName)}",
+  "onbBsb": "${escapeStringForJson(onbBsb)}",
+  "onbAccountNumber": "${escapeStringForJson(onbAccountNumber)}",
+  "onbUsage": "${escapeStringForJson(onbUsage)}",
+  "onbConsentAccepted": "${onbConsentAccepted}"
+}''';
+    return ApiManager.instance.makeApiCall(
+      callName: 'SubmitStripeOnboarding',
+      apiUrl: 'https://splitstack-backend.vercel.app/api/submit-onboarding',
+      callType: ApiCallType.POST,
+      headers: {},
+      params: {},
+      body: ffApiRequestBody,
+      bodyType: BodyType.JSON,
+      returnBody: true,
+      encodeBodyUtf8: false,
+      decodeUtf8: false,
+      cache: false,
+      isStreamingApi: false,
+      alwaysAllowBody: false,
+    );
+  }
 }
 
 class ApiPagingParams {

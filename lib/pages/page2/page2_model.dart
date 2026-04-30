@@ -18,6 +18,14 @@ class Page2Model extends FlutterFlowModel<Page2Widget> {
 
   bool includeSelf = true;
 
+  String title = '\"\"';
+
+  String? nameError;
+
+  String? titleError;
+
+  String? amountError;
+
   ///  State fields for stateful widgets in this page.
 
   // State field(s) for TextField widget.
@@ -28,19 +36,19 @@ class Page2Model extends FlutterFlowModel<Page2Widget> {
   FocusNode? textFieldFocusNode2;
   TextEditingController? textController2;
   String? Function(BuildContext, String?)? textController2Validator;
-  // State field(s) for DropDown widget.
-  String? dropDownValue;
-  FormFieldController<String>? dropDownValueController;
   // State field(s) for TextField widget.
   FocusNode? textFieldFocusNode3;
   TextEditingController? textController3;
   String? Function(BuildContext, String?)? textController3Validator;
-  // Stores action output result for [Custom Action - amountwithFee] action in TextField widget.
-  double? amountwithFee;
+  // State field(s) for DropDown widget.
+  String? dropDownValue;
+  FormFieldController<String>? dropDownValueController;
   // State field(s) for Switch widget.
   bool? switchValue;
+  // Stores action output result for [Custom Action - amountwithFee] action in Button widget.
+  double? amountwithFee;
   // Stores action output result for [Backend Call - Create Document] action in Button widget.
-  StackRecord? createdStack;
+  StacksRecord? createdStack;
 
   @override
   void initState(BuildContext context) {}

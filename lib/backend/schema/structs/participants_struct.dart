@@ -15,6 +15,7 @@ class ParticipantsStruct extends FFFirebaseStruct {
     bool? paymentLinkSend,
     String? userID,
     bool? pendingPayment,
+    String? phone,
     FirestoreUtilData firestoreUtilData = const FirestoreUtilData(),
   })  : _name = name,
         _amount = amount,
@@ -23,6 +24,7 @@ class ParticipantsStruct extends FFFirebaseStruct {
         _paymentLinkSend = paymentLinkSend,
         _userID = userID,
         _pendingPayment = pendingPayment,
+        _phone = phone,
         super(firestoreUtilData);
 
   // "name" field.
@@ -76,6 +78,13 @@ class ParticipantsStruct extends FFFirebaseStruct {
 
   bool hasPendingPayment() => _pendingPayment != null;
 
+  // "phone" field.
+  String? _phone;
+  String get phone => _phone ?? '';
+  set phone(String? val) => _phone = val;
+
+  bool hasPhone() => _phone != null;
+
   static ParticipantsStruct fromMap(Map<String, dynamic> data) =>
       ParticipantsStruct(
         name: data['name'] as String?,
@@ -85,6 +94,7 @@ class ParticipantsStruct extends FFFirebaseStruct {
         paymentLinkSend: data['paymentLinkSend'] as bool?,
         userID: data['userID'] as String?,
         pendingPayment: data['pendingPayment'] as bool?,
+        phone: data['phone'] as String?,
       );
 
   static ParticipantsStruct? maybeFromMap(dynamic data) => data is Map
@@ -99,6 +109,7 @@ class ParticipantsStruct extends FFFirebaseStruct {
         'paymentLinkSend': _paymentLinkSend,
         'userID': _userID,
         'pendingPayment': _pendingPayment,
+        'phone': _phone,
       }.withoutNulls;
 
   @override
@@ -130,6 +141,10 @@ class ParticipantsStruct extends FFFirebaseStruct {
         'pendingPayment': serializeParam(
           _pendingPayment,
           ParamType.bool,
+        ),
+        'phone': serializeParam(
+          _phone,
+          ParamType.String,
         ),
       }.withoutNulls;
 
@@ -170,6 +185,11 @@ class ParticipantsStruct extends FFFirebaseStruct {
           ParamType.bool,
           false,
         ),
+        phone: deserializeParam(
+          data['phone'],
+          ParamType.String,
+          false,
+        ),
       );
 
   @override
@@ -184,7 +204,8 @@ class ParticipantsStruct extends FFFirebaseStruct {
         paidStatus == other.paidStatus &&
         paymentLinkSend == other.paymentLinkSend &&
         userID == other.userID &&
-        pendingPayment == other.pendingPayment;
+        pendingPayment == other.pendingPayment &&
+        phone == other.phone;
   }
 
   @override
@@ -195,7 +216,8 @@ class ParticipantsStruct extends FFFirebaseStruct {
         paidStatus,
         paymentLinkSend,
         userID,
-        pendingPayment
+        pendingPayment,
+        phone
       ]);
 }
 
@@ -207,6 +229,7 @@ ParticipantsStruct createParticipantsStruct({
   bool? paymentLinkSend,
   String? userID,
   bool? pendingPayment,
+  String? phone,
   Map<String, dynamic> fieldValues = const {},
   bool clearUnsetFields = true,
   bool create = false,
@@ -220,6 +243,7 @@ ParticipantsStruct createParticipantsStruct({
       paymentLinkSend: paymentLinkSend,
       userID: userID,
       pendingPayment: pendingPayment,
+      phone: phone,
       firestoreUtilData: FirestoreUtilData(
         clearUnsetFields: clearUnsetFields,
         create: create,
@@ -278,7 +302,7 @@ Map<String, dynamic> getParticipantsFirestoreData(
   final firestoreData = mapToFirestore(participants.toMap());
 
   // Add any Firestore field values
-  participants.firestoreUtilData.fieldValues
+  mapToFirestore(participants.firestoreUtilData.fieldValues)
       .forEach((k, v) => firestoreData[k] = v);
 
   return forFieldValue ? mergeNestedFields(firestoreData) : firestoreData;

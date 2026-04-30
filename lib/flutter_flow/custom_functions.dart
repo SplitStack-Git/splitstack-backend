@@ -94,3 +94,15 @@ String? firstLetter(String? name) {
   }
   return name[0].toUpperCase();
 }
+
+int? countPaidParticipants(List<dynamic> participants) {
+  int count = 0;
+
+  for (var p in participants) {
+    if (p['paid_status'] == true) {
+      count++;
+    }
+  }
+
+  return count;
+}

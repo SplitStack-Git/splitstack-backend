@@ -86,14 +86,69 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               appStateNotifier.loggedIn ? Page1Widget() : SplashScreenWidget(),
         ),
         FFRoute(
-          name: Page1Widget.routeName,
-          path: Page1Widget.routePath,
-          builder: (context, params) => Page1Widget(),
+          name: StackOverviewPageWidget.routeName,
+          path: StackOverviewPageWidget.routePath,
+          builder: (context, params) => StackOverviewPageWidget(),
         ),
         FFRoute(
-          name: Page2Widget.routeName,
-          path: Page2Widget.routePath,
-          builder: (context, params) => Page2Widget(),
+          name: GetPaidSetUpWidget.routeName,
+          path: GetPaidSetUpWidget.routePath,
+          builder: (context, params) => GetPaidSetUpWidget(),
+        ),
+        FFRoute(
+          name: SplashScreenWidget.routeName,
+          path: SplashScreenWidget.routePath,
+          builder: (context, params) => SplashScreenWidget(),
+        ),
+        FFRoute(
+          name: Auth2Widget.routeName,
+          path: Auth2Widget.routePath,
+          builder: (context, params) => Auth2Widget(),
+        ),
+        FFRoute(
+          name: OnboardingStep2AddressWidget.routeName,
+          path: OnboardingStep2AddressWidget.routePath,
+          builder: (context, params) => OnboardingStep2AddressWidget(),
+        ),
+        FFRoute(
+          name: OnboardingStep4UsageWidget.routeName,
+          path: OnboardingStep4UsageWidget.routePath,
+          builder: (context, params) => OnboardingStep4UsageWidget(),
+        ),
+        FFRoute(
+          name: OnboardingStep5ConsentWidget.routeName,
+          path: OnboardingStep5ConsentWidget.routePath,
+          builder: (context, params) => OnboardingStep5ConsentWidget(),
+        ),
+        FFRoute(
+          name: OnboardingStep6ReviewWidget.routeName,
+          path: OnboardingStep6ReviewWidget.routePath,
+          builder: (context, params) => OnboardingStep6ReviewWidget(),
+        ),
+        FFRoute(
+          name: OnboardingStep7SuccessWidget.routeName,
+          path: OnboardingStep7SuccessWidget.routePath,
+          builder: (context, params) => OnboardingStep7SuccessWidget(),
+        ),
+        FFRoute(
+          name: LogInPageWidget.routeName,
+          path: LogInPageWidget.routePath,
+          builder: (context, params) => LogInPageWidget(),
+        ),
+        FFRoute(
+          name: NewOrReturningPageWidget.routeName,
+          path: NewOrReturningPageWidget.routePath,
+          builder: (context, params) => NewOrReturningPageWidget(),
+        ),
+        FFRoute(
+          name: StackPaymentStatusCopyWidget.routeName,
+          path: StackPaymentStatusCopyWidget.routePath,
+          builder: (context, params) => StackPaymentStatusCopyWidget(
+            token: params.getParam(
+              'token',
+              ParamType.String,
+            ),
+          ),
         ),
         FFRoute(
           name: Page4Widget.routeName,
@@ -103,7 +158,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               'doc',
               ParamType.DocumentReference,
               isList: false,
-              collectionNamePath: ['Stack'],
+              collectionNamePath: ['stacks'],
             ),
           ),
         ),
@@ -111,7 +166,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
           name: Page3Widget.routeName,
           path: Page3Widget.routePath,
           asyncParams: {
-            'docRef': getDoc(['Stack'], StackRecord.fromSnapshot),
+            'docRef': getDoc(['stacks'], StacksRecord.fromSnapshot),
           },
           builder: (context, params) => Page3Widget(
             docRef: params.getParam(
@@ -125,51 +180,39 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
           ),
         ),
         FFRoute(
-          name: StackOverviewPageWidget.routeName,
-          path: StackOverviewPageWidget.routePath,
-          builder: (context, params) => StackOverviewPageWidget(),
+          name: OnboardingStep1IdentityWidget.routeName,
+          path: OnboardingStep1IdentityWidget.routePath,
+          builder: (context, params) => OnboardingStep1IdentityWidget(),
         ),
         FFRoute(
-          name: PaymentPageWidget.routeName,
-          path: PaymentPageWidget.routePath,
-          builder: (context, params) => PaymentPageWidget(
-            stackId: params.getParam(
-              'stackId',
+          name: OnboardingStep3BankWidget.routeName,
+          path: OnboardingStep3BankWidget.routePath,
+          builder: (context, params) => OnboardingStep3BankWidget(),
+        ),
+        FFRoute(
+          name: StackPaymentStatusWidget.routeName,
+          path: StackPaymentStatusWidget.routePath,
+          builder: (context, params) => StackPaymentStatusWidget(
+            token: params.getParam(
+              'token',
               ParamType.String,
-            ),
-            participantId: params.getParam(
-              'participantId',
-              ParamType.String,
-            ),
-            organiserAccountId: params.getParam(
-              'organiserAccountId',
-              ParamType.String,
-            ),
-            amountCents: params.getParam(
-              'amountCents',
-              ParamType.int,
             ),
           ),
         ),
         FFRoute(
-          name: GetPaidSetUpWidget.routeName,
-          path: GetPaidSetUpWidget.routePath,
-          builder: (context, params) => GetPaidSetUpWidget(),
+          name: PaymentSuccessWidget.routeName,
+          path: PaymentSuccessWidget.routePath,
+          builder: (context, params) => PaymentSuccessWidget(),
         ),
         FFRoute(
-          name: SplashScreenWidget.routeName,
-          path: SplashScreenWidget.routePath,
-          builder: (context, params) => SplashScreenWidget(),
+          name: Page2Widget.routeName,
+          path: Page2Widget.routePath,
+          builder: (context, params) => Page2Widget(),
         ),
         FFRoute(
-          name: SignInWidget.routeName,
-          path: SignInWidget.routePath,
-          builder: (context, params) => SignInWidget(),
-        ),
-        FFRoute(
-          name: Auth2Widget.routeName,
-          path: Auth2Widget.routePath,
-          builder: (context, params) => Auth2Widget(),
+          name: Page1Widget.routeName,
+          path: Page1Widget.routePath,
+          builder: (context, params) => Page1Widget(),
         )
       ].map((r) => r.toRoute(appStateNotifier)).toList(),
     );
@@ -356,14 +399,14 @@ class FFRoute {
                 )
               : builder(context, ffParams);
           final child = appStateNotifier.loading
-              ? Container(
-                  color: FlutterFlowTheme.of(context).info,
-                  child: Center(
-                    child: Image.asset(
-                      'assets/images/Untitled_design_(1).png',
-                      width: 200.0,
-                      height: 200.0,
-                      fit: BoxFit.scaleDown,
+              ? Center(
+                  child: SizedBox(
+                    width: 50.0,
+                    height: 50.0,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        FlutterFlowTheme.of(context).primary,
+                      ),
                     ),
                   ),
                 )
@@ -373,6 +416,7 @@ class FFRoute {
           return transitionInfo.hasTransition
               ? CustomTransitionPage(
                   key: state.pageKey,
+                  name: state.name,
                   child: child,
                   transitionDuration: transitionInfo.duration,
                   transitionsBuilder:
@@ -390,7 +434,8 @@ class FFRoute {
                     child,
                   ),
                 )
-              : MaterialPage(key: state.pageKey, child: child);
+              : MaterialPage(
+                  key: state.pageKey, name: state.name, child: child);
         },
         routes: routes,
       );

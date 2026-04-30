@@ -15,16 +15,6 @@ class StacksRecord extends FirestoreRecord {
     _initializeFields();
   }
 
-  // "stack_id" field.
-  String? _stackId;
-  String get stackId => _stackId ?? '';
-  bool hasStackId() => _stackId != null;
-
-  // "creator_user_id" field.
-  String? _creatorUserId;
-  String get creatorUserId => _creatorUserId ?? '';
-  bool hasCreatorUserId() => _creatorUserId != null;
-
   // "title" field.
   String? _title;
   String get title => _title ?? '';
@@ -45,31 +35,53 @@ class StacksRecord extends FirestoreRecord {
   DateTime? get createdAt => _createdAt;
   bool hasCreatedAt() => _createdAt != null;
 
-  // "settled_at" field.
-  DateTime? _settledAt;
-  DateTime? get settledAt => _settledAt;
-  bool hasSettledAt() => _settledAt != null;
-
-  // "payer_name" field.
-  String? _payerName;
-  String get payerName => _payerName ?? '';
-  bool hasPayerName() => _payerName != null;
-
   // "total_amount" field.
   double? _totalAmount;
   double get totalAmount => _totalAmount ?? 0.0;
   bool hasTotalAmount() => _totalAmount != null;
 
+  // "createAndShare" field.
+  bool? _createAndShare;
+  bool get createAndShare => _createAndShare ?? false;
+  bool hasCreateAndShare() => _createAndShare != null;
+
+  // "organiser_name" field.
+  String? _organiserName;
+  String get organiserName => _organiserName ?? '';
+  bool hasOrganiserName() => _organiserName != null;
+
+  // "include_creator" field.
+  bool? _includeCreator;
+  bool get includeCreator => _includeCreator ?? false;
+  bool hasIncludeCreator() => _includeCreator != null;
+
+  // "organiser_id" field.
+  String? _organiserId;
+  String get organiserId => _organiserId ?? '';
+  bool hasOrganiserId() => _organiserId != null;
+
+  // "stack_for" field.
+  String? _stackFor;
+  String get stackFor => _stackFor ?? '';
+  bool hasStackFor() => _stackFor != null;
+
+  // "public_status_token" field.
+  String? _publicStatusToken;
+  String get publicStatusToken => _publicStatusToken ?? '';
+  bool hasPublicStatusToken() => _publicStatusToken != null;
+
   void _initializeFields() {
-    _stackId = snapshotData['stack_id'] as String?;
-    _creatorUserId = snapshotData['creator_user_id'] as String?;
     _title = snapshotData['title'] as String?;
     _currency = snapshotData['currency'] as String?;
     _stackStatus = snapshotData['stack_status'] as String?;
     _createdAt = snapshotData['created_at'] as DateTime?;
-    _settledAt = snapshotData['settled_at'] as DateTime?;
-    _payerName = snapshotData['payer_name'] as String?;
     _totalAmount = castToType<double>(snapshotData['total_amount']);
+    _createAndShare = snapshotData['createAndShare'] as bool?;
+    _organiserName = snapshotData['organiser_name'] as String?;
+    _includeCreator = snapshotData['include_creator'] as bool?;
+    _organiserId = snapshotData['organiser_id'] as String?;
+    _stackFor = snapshotData['stack_for'] as String?;
+    _publicStatusToken = snapshotData['public_status_token'] as String?;
   }
 
   static CollectionReference get collection =>
@@ -106,27 +118,31 @@ class StacksRecord extends FirestoreRecord {
 }
 
 Map<String, dynamic> createStacksRecordData({
-  String? stackId,
-  String? creatorUserId,
   String? title,
   String? currency,
   String? stackStatus,
   DateTime? createdAt,
-  DateTime? settledAt,
-  String? payerName,
   double? totalAmount,
+  bool? createAndShare,
+  String? organiserName,
+  bool? includeCreator,
+  String? organiserId,
+  String? stackFor,
+  String? publicStatusToken,
 }) {
   final firestoreData = mapToFirestore(
     <String, dynamic>{
-      'stack_id': stackId,
-      'creator_user_id': creatorUserId,
       'title': title,
       'currency': currency,
       'stack_status': stackStatus,
       'created_at': createdAt,
-      'settled_at': settledAt,
-      'payer_name': payerName,
       'total_amount': totalAmount,
+      'createAndShare': createAndShare,
+      'organiser_name': organiserName,
+      'include_creator': includeCreator,
+      'organiser_id': organiserId,
+      'stack_for': stackFor,
+      'public_status_token': publicStatusToken,
     }.withoutNulls,
   );
 
@@ -138,28 +154,32 @@ class StacksRecordDocumentEquality implements Equality<StacksRecord> {
 
   @override
   bool equals(StacksRecord? e1, StacksRecord? e2) {
-    return e1?.stackId == e2?.stackId &&
-        e1?.creatorUserId == e2?.creatorUserId &&
-        e1?.title == e2?.title &&
+    return e1?.title == e2?.title &&
         e1?.currency == e2?.currency &&
         e1?.stackStatus == e2?.stackStatus &&
         e1?.createdAt == e2?.createdAt &&
-        e1?.settledAt == e2?.settledAt &&
-        e1?.payerName == e2?.payerName &&
-        e1?.totalAmount == e2?.totalAmount;
+        e1?.totalAmount == e2?.totalAmount &&
+        e1?.createAndShare == e2?.createAndShare &&
+        e1?.organiserName == e2?.organiserName &&
+        e1?.includeCreator == e2?.includeCreator &&
+        e1?.organiserId == e2?.organiserId &&
+        e1?.stackFor == e2?.stackFor &&
+        e1?.publicStatusToken == e2?.publicStatusToken;
   }
 
   @override
   int hash(StacksRecord? e) => const ListEquality().hash([
-        e?.stackId,
-        e?.creatorUserId,
         e?.title,
         e?.currency,
         e?.stackStatus,
         e?.createdAt,
-        e?.settledAt,
-        e?.payerName,
-        e?.totalAmount
+        e?.totalAmount,
+        e?.createAndShare,
+        e?.organiserName,
+        e?.includeCreator,
+        e?.organiserId,
+        e?.stackFor,
+        e?.publicStatusToken
       ]);
 
   @override

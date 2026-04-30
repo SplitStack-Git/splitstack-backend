@@ -25,6 +25,8 @@ class _StackOverviewPageWidgetState extends State<StackOverviewPageWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => StackOverviewPageModel());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
   @override

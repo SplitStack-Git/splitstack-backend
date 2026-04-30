@@ -28,6 +28,8 @@ class _AllPaidUpWidgetState extends State<AllPaidUpWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => AllPaidUpModel());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
   @override

@@ -1,10 +1,13 @@
 import '/auth/firebase_auth/auth_util.dart';
 import '/backend/backend.dart';
+import '/components/image_asset_widget.dart';
 import '/flutter_flow/flutter_flow_icon_button.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/flutter_flow/flutter_flow_widgets.dart';
+import '/custom_code/actions/index.dart' as actions;
 import '/custom_code/widgets/index.dart' as custom_widgets;
+import '/flutter_flow/permissions_util.dart';
 import '/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -20,7 +23,7 @@ class Page3Widget extends StatefulWidget {
     required this.amount,
   });
 
-  final StackRecord? docRef;
+  final StacksRecord? docRef;
   final double? amount;
 
   static String routeName = 'Page3';
@@ -45,6 +48,8 @@ class _Page3WidgetState extends State<Page3Widget> {
       _model.totalAmount = (widget.amount!) + 0.40;
       safeSetState(() {});
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
   @override
@@ -99,24 +104,34 @@ class _Page3WidgetState extends State<Page3Widget> {
                             mainAxisSize: MainAxisSize.max,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Split the Bill',
-                                style: FlutterFlowTheme.of(context)
-                                    .headlineLarge
-                                    .override(
-                                      font: GoogleFonts.interTight(
+                              InkWell(
+                                splashColor: Colors.transparent,
+                                focusColor: Colors.transparent,
+                                hoverColor: Colors.transparent,
+                                highlightColor: Colors.transparent,
+                                onTap: () async {
+                                  await requestPermission(contactsPermission);
+                                },
+                                child: Text(
+                                  'Split the Bill',
+                                  style: FlutterFlowTheme.of(context)
+                                      .headlineLarge
+                                      .override(
+                                        font: GoogleFonts.interTight(
+                                          fontWeight: FontWeight.w600,
+                                          fontStyle:
+                                              FlutterFlowTheme.of(context)
+                                                  .headlineLarge
+                                                  .fontStyle,
+                                        ),
+                                        color: Color(0xFF121212),
+                                        letterSpacing: 0.0,
                                         fontWeight: FontWeight.w600,
                                         fontStyle: FlutterFlowTheme.of(context)
                                             .headlineLarge
                                             .fontStyle,
                                       ),
-                                      color: Color(0xFF121212),
-                                      letterSpacing: 0.0,
-                                      fontWeight: FontWeight.w600,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .headlineLarge
-                                          .fontStyle,
-                                    ),
+                                ),
                               ),
                               Text(
                                 'Adjust amounts - auto-balanced',
@@ -204,32 +219,43 @@ class _Page3WidgetState extends State<Page3Widget> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    formatNumber(
-                                      _model.totalAmount,
-                                      formatType: FormatType.custom,
-                                      currency: '\$',
-                                      format: '#,##0.00',
-                                      locale: '',
-                                    ),
-                                    style: FlutterFlowTheme.of(context)
-                                        .displaySmall
-                                        .override(
-                                          font: GoogleFonts.interTight(
+                                  Expanded(
+                                    child: Text(
+                                      '${valueOrDefault<String>(
+                                        FFAppState()
+                                            .currencyList
+                                            .where((e) =>
+                                                e.code ==
+                                                widget.docRef?.currency)
+                                            .toList()
+                                            .firstOrNull
+                                            ?.symbol,
+                                        '\$',
+                                      )}${formatNumber(
+                                        _model.totalAmount,
+                                        formatType: FormatType.custom,
+                                        format: '#,##0.00',
+                                        locale: '',
+                                      )}',
+                                      style: FlutterFlowTheme.of(context)
+                                          .displaySmall
+                                          .override(
+                                            font: GoogleFonts.interTight(
+                                              fontWeight: FontWeight.w600,
+                                              fontStyle:
+                                                  FlutterFlowTheme.of(context)
+                                                      .displaySmall
+                                                      .fontStyle,
+                                            ),
+                                            color: Color(0xFF121212),
+                                            letterSpacing: 0.0,
                                             fontWeight: FontWeight.w600,
                                             fontStyle:
                                                 FlutterFlowTheme.of(context)
                                                     .displaySmall
                                                     .fontStyle,
                                           ),
-                                          color: Color(0xFF121212),
-                                          letterSpacing: 0.0,
-                                          fontWeight: FontWeight.w600,
-                                          fontStyle:
-                                              FlutterFlowTheme.of(context)
-                                                  .displaySmall
-                                                  .fontStyle,
-                                        ),
+                                    ),
                                   ),
                                   Row(
                                     mainAxisSize: MainAxisSize.max,
@@ -266,9 +292,18 @@ class _Page3WidgetState extends State<Page3Widget> {
                                           _model.stepAmount = 1;
                                           safeSetState(() {});
                                         },
-                                        text: '\$1',
+                                        text: '${valueOrDefault<String>(
+                                          FFAppState()
+                                              .currencyList
+                                              .where((e) =>
+                                                  e.code ==
+                                                  widget.docRef?.currency)
+                                              .toList()
+                                              .firstOrNull
+                                              ?.symbol,
+                                          '\$',
+                                        )}1',
                                         options: FFButtonOptions(
-                                          width: 40.0,
                                           height: 32.0,
                                           padding: EdgeInsets.all(8.0),
                                           iconPadding:
@@ -319,9 +354,18 @@ class _Page3WidgetState extends State<Page3Widget> {
                                           _model.stepAmount = 5;
                                           safeSetState(() {});
                                         },
-                                        text: '\$5',
+                                        text: '${valueOrDefault<String>(
+                                          FFAppState()
+                                              .currencyList
+                                              .where((e) =>
+                                                  e.code ==
+                                                  widget.docRef?.currency)
+                                              .toList()
+                                              .firstOrNull
+                                              ?.symbol,
+                                          '\$',
+                                        )}5',
                                         options: FFButtonOptions(
-                                          width: 40.0,
                                           height: 32.0,
                                           padding: EdgeInsets.all(8.0),
                                           iconPadding:
@@ -393,43 +437,51 @@ class _Page3WidgetState extends State<Page3Widget> {
                       mainAxisSize: MainAxisSize.max,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Container(
+                        custom_widgets.Splitbill(
                           width: double.infinity,
-                          height: 430.0,
-                          child: custom_widgets.Splitbill(
-                            width: double.infinity,
-                            height: 430.0,
-                            totalamount: widget.docRef?.amount,
-                            splitValue: _model.stepAmount?.toString(),
-                            data: FFAppState().participants,
-                            uid: currentUserUid,
-                            callback: (update, amount) async {
-                              FFAppState().participants =
-                                  update!.toList().cast<ParticipantsStruct>();
-                              safeSetState(() {});
+                          height: 500.0,
+                          totalamount: widget.docRef?.totalAmount,
+                          splitValue: _model.stepAmount?.toString(),
+                          data: FFAppState().participants,
+                          uid: currentUserUid,
+                          currencySymbol: valueOrDefault<String>(
+                            FFAppState()
+                                .currencyList
+                                .where(
+                                    (e) => e.code == widget.docRef?.currency)
+                                .toList()
+                                .firstOrNull
+                                ?.symbol,
+                            '\$',
+                          ),
+                          callback: (update, amount) async {
+                            FFAppState().participants =
+                                update!.toList().cast<ParticipantsStruct>();
+                            safeSetState(() {});
+                            if (FFAppState().participants.firstOrNull != null) {
                               _model.totalAmount = amount;
                               safeSetState(() {});
-                            },
-                          ),
+                            } else {
+                              _model.totalAmount = widget.amount;
+                              safeSetState(() {});
+                            }
+                          },
+                          addcontacts: (update, amount) async {},
+                          participentImage: () => ImageAssetWidget(),
                         ),
                       ],
                     ),
                     FFButtonWidget(
                       onPressed: () async {
-                        await widget.docRef!.reference.update({
-                          ...createStackRecordData(
-                            createAndShare: true,
-                            createdAt: getCurrentTimestamp,
-                            amount: _model.totalAmount,
-                          ),
-                          ...mapToFirestore(
-                            {
-                              'participants': getParticipantsListFirestoreData(
-                                FFAppState().participants,
-                              ),
-                            },
-                          ),
-                        });
+                        await widget.docRef!.reference
+                            .update(createStacksRecordData(
+                          createAndShare: true,
+                          totalAmount: _model.totalAmount,
+                        ));
+                        await actions.documentCreate(
+                          FFAppState().participants.toList(),
+                          widget.docRef?.reference,
+                        );
                         await Future.delayed(
                           Duration(
                             milliseconds: 2000,
@@ -440,7 +492,7 @@ class _Page3WidgetState extends State<Page3Widget> {
                           Page4Widget.routeName,
                           queryParameters: {
                             'doc': serializeParam(
-                              FFAppState().ref,
+                              widget.docRef?.reference,
                               ParamType.DocumentReference,
                             ),
                           }.withoutNulls,

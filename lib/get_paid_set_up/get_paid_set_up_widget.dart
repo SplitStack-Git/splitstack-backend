@@ -26,6 +26,8 @@ class _GetPaidSetUpWidgetState extends State<GetPaidSetUpWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => GetPaidSetUpModel());
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
   }
 
   @override

@@ -30,7 +30,8 @@ async function readJsonBody(req) {
 }
 
 module.exports = async (req, res) => {
-console.log("🔥 VERSION: NEW CODE DEPLOYED");
+
+  console.log("🔥 VERSION: FINAL FIX DEPLOYED");
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -57,7 +58,7 @@ console.log("🔥 VERSION: NEW CODE DEPLOYED");
     const db = admin.firestore();
 
     // -------------------------
-    // Load participant
+    // LOAD PARTICIPANT
     // -------------------------
 
     const participantRef = db.collection('participants').doc(String(participant_id));
@@ -70,24 +71,28 @@ console.log("🔥 VERSION: NEW CODE DEPLOYED");
     const participant = participantSnap.data();
     const participantDocId = participantRef.id;
 
+    console.log("👤 Participant:", participantDocId);
+
     if (participant.paid_status === true) {
       return res.status(400).json({ error: 'Participant already paid' });
     }
 
     // -------------------------
-    // Load stack (FIXED)
+    // LOAD STACK (SAFE)
     // -------------------------
 
     let stackPath = participant.stack_id;
 
-    if (!stackPath) {
-      return res.status(400).json({ error: 'Participant missing stack reference' });
+    if (!stackPath || typeof stackPath !== 'string') {
+      return res.status(400).json({ error: 'Invalid stack_id on participant' });
     }
 
-    // 🔥 FIX: remove leading slash
-    if (typeof stackPath === 'string' && stackPath.startsWith('/')) {
+    // remove leading slash if exists
+    if (stackPath.startsWith('/')) {
       stackPath = stackPath.slice(1);
     }
+
+    console.log("📦 Stack path:", stackPath);
 
     const stackRef = db.doc(stackPath);
     const stackSnap = await stackRef.get();
@@ -99,12 +104,12 @@ console.log("🔥 VERSION: NEW CODE DEPLOYED");
     const stack = stackSnap.data();
 
     // -------------------------
-    // Find organiser (FIXED)
+    // FIND ORGANISER (SAFE)
     // -------------------------
 
     const organiserQuery = await db
       .collection('participants')
-      .where('stack_id', '==', participant.stack_id) // ✅ exact match
+      .where('stack_id', '==', participant.stack_id)
       .where('isOrganiser', '==', true)
       .limit(1)
       .get();
@@ -113,28 +118,45 @@ console.log("🔥 VERSION: NEW CODE DEPLOYED");
       return res.status(400).json({ error: 'Organiser not found' });
     }
 
-    const organiser = organiserQuery.docs[0].data();
+    const organiserDoc = organiserQuery.docs[0];
+    const organiser = organiserDoc.data();
 
-    if (!organiser.userID) {
-      return res.status(400).json({ error: 'Organiser missing userID' });
+    console.log("👑 Organiser doc:", organiserDoc.id);
+
+    if (!organiser.userID || organiser.userID.trim() === "") {
+      return res.status(400).json({
+        error: 'Organiser missing userID (CRITICAL)',
+        debug: organiser
+      });
     }
 
-    const userDoc = await db.collection('users').doc(organiser.userID).get();
+    // -------------------------
+    // LOAD USER
+    // -------------------------
+
+    const userDocRef = db.collection('users').doc(String(organiser.userID));
+    const userDoc = await userDocRef.get();
 
     if (!userDoc.exists) {
-      return res.status(400).json({ error: 'User not found for organiser' });
+      return res.status(400).json({
+        error: 'User not found for organiser',
+        userID: organiser.userID
+      });
     }
 
     const organiserStripeAccountId = userDoc.data().stripe_account_id;
 
     if (!organiserStripeAccountId) {
-      return res.status(400).json({ error: 'Organiser missing stripe_account_id' });
+      return res.status(400).json({
+        error: 'Organiser missing stripe_account_id',
+        user: userDoc.data()
+      });
     }
 
-    console.log("💰 Destination account:", organiserStripeAccountId);
+    console.log("💰 Stripe account:", organiserStripeAccountId);
 
     // -------------------------
-    // Payment details
+    // PAYMENT DETAILS
     // -------------------------
 
     const currency = (participant.currency || stack.currency || 'aud').toLowerCase();
@@ -195,6 +217,10 @@ console.log("🔥 VERSION: NEW CODE DEPLOYED");
       }
     );
 
+    // -------------------------
+    // SAVE SESSION
+    // -------------------------
+
     await participantRef.update({
       checkout_session_id: session.id
     });
@@ -206,7 +232,7 @@ console.log("🔥 VERSION: NEW CODE DEPLOYED");
 
   } catch (err) {
 
-    console.error("ERROR:", err);
+    console.error("❌ ERROR:", err);
 
     return res.status(500).json({
       error: 'Failed to create checkout session',

@@ -5,8 +5,8 @@ if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(
       JSON.parse(
-  Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, 'base64').toString('utf8')
-)
+        Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, 'base64').toString('utf8')
+      )
     ),
   });
 }
@@ -18,24 +18,40 @@ module.exports = async (req, res) => {
     const { userId } = req.body;
 
     if (!userId) {
-  return res.status(400).json({ error: 'Missing userId' });
-}
+      return res.status(400).json({ error: 'Missing userId' });
+    }
 
-// Load user from Firestore
-const userSnap = await db.collection('users').doc(userId).get();
+    const userRef = db.collection('users').doc(userId);
+    const userSnap = await userRef.get();
 
-if (!userSnap.exists) {
-  return res.status(404).json({ error: 'User not found' });
-}
+    if (!userSnap.exists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-const userData = userSnap.data();
-const email = userData.email;
+    const userData = userSnap.data();
+    const email = userData.email;
 
-if (!email) {
-  return res.status(400).json({ error: 'User email missing in database' });
-}
+    if (!email) {
+      return res.status(400).json({ error: 'User email missing in database' });
+    }
 
-    // 1️⃣ Create Stripe Connect Custom account
+    // 🔒 =========================
+    // REUSE EXISTING ACCOUNT
+    // =========================
+
+    if (userData.stripe_account_id) {
+      console.log("🔒 Reusing existing Stripe account:", userData.stripe_account_id);
+
+      return res.status(200).json({
+        message: 'Existing account reused',
+        accountId: userData.stripe_account_id,
+      });
+    }
+
+    // 🚀 =========================
+    // CREATE NEW ACCOUNT (ONLY ONCE)
+    // =========================
+
     const account = await stripe.accounts.create({
       type: 'custom',
       country: 'AU',
@@ -46,8 +62,11 @@ if (!email) {
       },
     });
 
-    // 2️⃣ Store stripe_account_id on user document
-    await db.collection('users').doc(userId).update({
+    console.log("🆕 Created new Stripe account:", account.id);
+
+    // 💾 Save to Firestore
+
+    await userRef.update({
       stripe_account_id: account.id,
       stripe_onboarding_complete: false,
       stripe_details_submitted: false,

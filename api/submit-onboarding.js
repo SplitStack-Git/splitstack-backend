@@ -3,7 +3,10 @@ import admin from "firebase-admin";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Firebase init
+/* ================================
+   FIREBASE INIT
+================================ */
+
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(
     Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, "base64").toString("utf8")
@@ -18,49 +21,51 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+/* ================================
+   🌍 GLOBAL PHONE FORMATTER (FIXED)
+   Handles ANY format → E.164
+================================ */
 
-// ✅ GLOBAL PHONE FORMATTER (E.164)
-function formatPhone(phone, country) {
-  if (!phone) return phone;
+function formatPhone(phone, country = "AU") {
+  if (!phone) return null;
 
-  const cleaned = phone.replace(/\D/g, "");
+  // Remove EVERYTHING except digits
+  let cleaned = phone.replace(/\D/g, "");
 
-  if (phone.startsWith("+")) return phone;
+  // If already includes country code (e.g. 614..., 1415...)
+  if (cleaned.startsWith("61") || cleaned.startsWith("1")) {
+    return "+" + cleaned;
+  }
 
   switch (country) {
     case "AU":
-      return cleaned.startsWith("0") ? "+61" + cleaned.slice(1) : "+61" + cleaned;
+      if (cleaned.startsWith("0")) cleaned = cleaned.slice(1);
+      return "+61" + cleaned;
 
     case "US":
     case "CA":
       return "+1" + cleaned;
 
     case "GB":
-      return cleaned.startsWith("0") ? "+44" + cleaned.slice(1) : "+44" + cleaned;
+      if (cleaned.startsWith("0")) cleaned = cleaned.slice(1);
+      return "+44" + cleaned;
 
     case "NZ":
-      return cleaned.startsWith("0") ? "+64" + cleaned.slice(1) : "+64" + cleaned;
+      if (cleaned.startsWith("0")) cleaned = cleaned.slice(1);
+      return "+64" + cleaned;
 
     case "IE":
-      return cleaned.startsWith("0") ? "+353" + cleaned.slice(1) : "+353" + cleaned;
-
-    case "SG":
-      return "+65" + cleaned;
-
-    case "NL":
-      return cleaned.startsWith("0") ? "+31" + cleaned.slice(1) : "+31" + cleaned;
-
-    case "DE":
-      return cleaned.startsWith("0") ? "+49" + cleaned.slice(1) : "+49" + cleaned;
-
-    case "FR":
-      return cleaned.startsWith("0") ? "+33" + cleaned.slice(1) : "+33" + cleaned;
+      if (cleaned.startsWith("0")) cleaned = cleaned.slice(1);
+      return "+353" + cleaned;
 
     default:
       return "+" + cleaned;
   }
 }
 
+/* ================================
+   HANDLER
+================================ */
 
 export default async function handler(req, res) {
   console.log("🔥 SUBMIT ONBOARDING HIT");
@@ -86,9 +91,7 @@ export default async function handler(req, res) {
       onbUsage,
     } = req.body;
 
-    // ✅ Validate
     if (!userId) {
-      console.error("❌ Missing userId");
       return res.status(400).json({
         status: "error",
         message: "Missing userId",
@@ -96,18 +99,25 @@ export default async function handler(req, res) {
     }
 
     const userRef = db.collection("users").doc(userId);
-    const userSnap = await userRef.get();
 
-    if (!userSnap.exists) {
-      return res.status(404).json({
-        status: "error",
-        message: "User not found",
-      });
-    }
+    /* ================================
+       🔥 HARD GUARANTEE USER EXISTS
+    ================================ */
 
-    let stripeAccountId = userSnap.data().stripe_account_id || null;
+    await userRef.set({
+      uid: userId,
+      email: onbEmail || null,
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
 
-    // ✅ CREATE STRIPE ACCOUNT (ONLY IF NONE EXISTS)
+    // 🔥 ALWAYS RELOAD AFTER WRITE (CRITICAL FIX)
+    const freshUserSnap = await userRef.get();
+    let stripeAccountId = freshUserSnap.data().stripe_account_id || null;
+
+    /* ================================
+       CREATE STRIPE ACCOUNT IF NEEDED
+    ================================ */
+
     if (!stripeAccountId) {
       console.log("🔥 Creating Stripe account...");
 
@@ -126,12 +136,15 @@ export default async function handler(req, res) {
 
       console.log("✅ Stripe account created:", stripeAccountId);
 
-      await userRef.update({
+      await userRef.set({
         stripe_account_id: stripeAccountId,
-      });
+      }, { merge: true });
     }
 
-    // ✅ ALWAYS UPDATE PARTICIPANTS (ORGANISER)
+    /* ================================
+       🔥 SYNC ORGANISER PARTICIPANTS
+    ================================ */
+
     const participantsSnap = await db
       .collection("participants")
       .where("userID", "==", userId)
@@ -141,15 +154,23 @@ export default async function handler(req, res) {
     console.log("👀 Organiser docs found:", participantsSnap.size);
 
     for (const doc of participantsSnap.docs) {
-      await doc.ref.update({
+      await doc.ref.set({
         stripe_account_id: stripeAccountId,
-      });
+      }, { merge: true });
     }
 
-    // ✅ FORMAT PHONE
+    /* ================================
+       FORMAT PHONE (FIXED)
+    ================================ */
+
     const formattedPhone = formatPhone(onbPhone, onbCountry);
 
-    // ✅ BUILD UPDATE OBJECT (KEEP YOUR STRUCTURE)
+    console.log("📞 Formatted phone:", formattedPhone);
+
+    /* ================================
+       STRIPE UPDATE
+    ================================ */
+
     const updatePayload = {
       business_type: "individual",
 
@@ -175,7 +196,6 @@ export default async function handler(req, res) {
         },
       },
 
-      // 🔥 THIS IS WHAT YOU WERE MISSING
       business_profile: {
         mcc: "5734",
         url: "https://splitstack.app",
@@ -192,7 +212,10 @@ export default async function handler(req, res) {
       },
     };
 
-    // ✅ ONLY ADD BANK FOR AU (KEEP YOUR LOGIC)
+    /* ================================
+       BANK DETAILS (AU ONLY)
+    ================================ */
+
     if (onbCountry === "AU") {
       updatePayload.external_account = {
         object: "bank_account",
@@ -205,16 +228,18 @@ export default async function handler(req, res) {
       };
     }
 
-    // ✅ UPDATE STRIPE
     await stripe.accounts.update(stripeAccountId, updatePayload);
 
-    // ✅ UPDATE USER RECORD
-    await userRef.update({
+    /* ================================
+       FINAL USER UPDATE
+    ================================ */
+
+    await userRef.set({
       stripe_onboarding_complete: true,
       stripe_details_submitted: true,
       onb_usage: onbUsage,
       updated_at: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    }, { merge: true });
 
     console.log("✅ Onboarding complete");
 

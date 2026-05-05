@@ -2,7 +2,6 @@
 
 const admin = require('firebase-admin');
 const Stripe = require('stripe');
-const twilio = require('twilio');
 
 function initFirebaseAdmin() {
   if (admin.apps.length) return;
@@ -31,6 +30,7 @@ async function readJsonBody(req) {
 }
 
 module.exports = async (req, res) => {
+console.log("🔥 VERSION: NEW CODE DEPLOYED");
 
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -46,11 +46,6 @@ module.exports = async (req, res) => {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: '2024-06-20',
     });
-
-    const client = twilio(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_AUTH_TOKEN
-    );
 
     const body = await readJsonBody(req);
     const { participant_id } = body;
@@ -73,25 +68,28 @@ module.exports = async (req, res) => {
     }
 
     const participant = participantSnap.data();
-
     const participantDocId = participantRef.id;
-
-    console.log("✅ USING PARTICIPANT ID:", participantDocId);
 
     if (participant.paid_status === true) {
       return res.status(400).json({ error: 'Participant already paid' });
     }
 
     // -------------------------
-    // Load stack
+    // Load stack (FIXED)
     // -------------------------
 
-    const stackRef = participant.stack_id;
+    let stackPath = participant.stack_id;
 
-    if (!stackRef) {
+    if (!stackPath) {
       return res.status(400).json({ error: 'Participant missing stack reference' });
     }
 
+    // 🔥 FIX: remove leading slash
+    if (typeof stackPath === 'string' && stackPath.startsWith('/')) {
+      stackPath = stackPath.slice(1);
+    }
+
+    const stackRef = db.doc(stackPath);
     const stackSnap = await stackRef.get();
 
     if (!stackSnap.exists) {
@@ -99,6 +97,41 @@ module.exports = async (req, res) => {
     }
 
     const stack = stackSnap.data();
+
+    // -------------------------
+    // Find organiser (FIXED)
+    // -------------------------
+
+    const organiserQuery = await db
+      .collection('participants')
+      .where('stack_id', '==', participant.stack_id) // ✅ exact match
+      .where('isOrganiser', '==', true)
+      .limit(1)
+      .get();
+
+    if (organiserQuery.empty) {
+      return res.status(400).json({ error: 'Organiser not found' });
+    }
+
+    const organiser = organiserQuery.docs[0].data();
+
+    if (!organiser.userID) {
+      return res.status(400).json({ error: 'Organiser missing userID' });
+    }
+
+    const userDoc = await db.collection('users').doc(organiser.userID).get();
+
+    if (!userDoc.exists) {
+      return res.status(400).json({ error: 'User not found for organiser' });
+    }
+
+    const organiserStripeAccountId = userDoc.data().stripe_account_id;
+
+    if (!organiserStripeAccountId) {
+      return res.status(400).json({ error: 'Organiser missing stripe_account_id' });
+    }
+
+    console.log("💰 Destination account:", organiserStripeAccountId);
 
     // -------------------------
     // Payment details
@@ -115,77 +148,65 @@ module.exports = async (req, res) => {
       unitAmount = Math.round(Number(participant.amount) * 100);
     }
 
-    if (!unitAmount || unitAmount <= 0) {
+    if (!unitAmount || isNaN(unitAmount) || unitAmount <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
     }
 
     // -------------------------
-    // Create Stripe session
+    // CREATE STRIPE SESSION
     // -------------------------
 
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      const session = await stripe.checkout.sessions.create({
-  mode: 'payment',
-  line_items: [
-    {
-      price_data: {
-        currency,
-        product_data: {
-          name: `SplitStack - ${stack.title || 'Payment'}`
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: 'payment',
+        payment_method_types: ['card'],
+
+        line_items: [
+          {
+            price_data: {
+              currency,
+              product_data: {
+                name: `SplitStack - ${stack.title || 'Payment'}`
+              },
+              unit_amount: unitAmount
+            },
+            quantity: 1
+          }
+        ],
+
+        payment_intent_data: {
+          transfer_data: {
+            destination: organiserStripeAccountId
+          }
         },
-        unit_amount: unitAmount
-      },
-      quantity: 1
-    }
-  ],
-  metadata: {
-    participant_id: participantDocId,
-    stack_id: stackRef.id,
-    organiser_id: stack.organiser_id || '',
-    amount_original_share_cents: String(unitAmount)
-  },
-  success_url: 'https://splitstack.com/success?session_id={CHECKOUT_SESSION_ID}',
-  cancel_url: 'https://splitstack.com/cancel'
-});
 
-    // -------------------------
-    // Save checkout session
-    // -------------------------
+        metadata: {
+          participant_id: participantDocId,
+          stack_id: stackRef.id,
+          organiser_id: organiser.userID,
+          amount_original_share_cents: String(unitAmount)
+        },
+
+        success_url: 'https://app.splitstack.com.au/paymentSuccess',
+        cancel_url: 'https://app.splitstack.com.au/paymentCancel'
+      },
+      {
+        idempotencyKey: `checkout_${participantDocId}_${Date.now()}`
+      }
+    );
 
     await participantRef.update({
       checkout_session_id: session.id
     });
 
-    // -------------------------
-// Send SMS (Twilio)
-// -------------------------
-
-if (participant.phone) {
-  try {
-    await client.messages.create({
-      body: 'You owe $' + participant.amount + '. Pay here: ' + session.url,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: participant.phone
-    });
-  } catch (smsError) {
-    console.error("⚠️ SMS FAILED:", smsError.message);
-  }
-}
-
-    // -------------------------
-    // RETURN
-    // -------------------------
-
     return res.status(200).json({
       checkoutUrl: session.url,
-      checkout_url: session.url,
       url: session.url
     });
 
   } catch (err) {
 
-    console.error("❌ ERROR:", err);
+    console.error("ERROR:", err);
 
     return res.status(500).json({
       error: 'Failed to create checkout session',

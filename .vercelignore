@@ -1,0 +1,4 @@
+node_modules
+*.zip
+.env
+firebase-service-account.json

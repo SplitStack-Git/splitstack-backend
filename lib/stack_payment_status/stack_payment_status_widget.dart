@@ -244,7 +244,7 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                               valueOrDefault<String>(
                                                 stackPaymentStatusStacksRecord
                                                     ?.title,
-                                                'Dinner at Giuseppe\'s',
+                                                'Title',
                                               ),
                                               style: FlutterFlowTheme.of(
                                                       context)
@@ -318,8 +318,7 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                                             .currencyList
                                                             .where((e) =>
                                                                 e.code ==
-                                                                stackPaymentStatusStacksRecord
-                                                                    ?.currency)
+                                                                e.symbol)
                                                             .toList()
                                                             .firstOrNull
                                                             ?.symbol,
@@ -330,7 +329,7 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                                         formatType:
                                                             FormatType.decimal,
                                                         decimalType: DecimalType
-                                                            .periodDecimal,
+                                                            .automatic,
                                                       )}',
                                                       style: FlutterFlowTheme
                                                               .of(context)
@@ -447,8 +446,7 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                                                 .currencyList
                                                                 .where((e) =>
                                                                     e.code ==
-                                                                    stackPaymentStatusStacksRecord
-                                                                        ?.currency)
+                                                                    e.symbol)
                                                                 .toList()
                                                                 .firstOrNull
                                                                 ?.symbol,

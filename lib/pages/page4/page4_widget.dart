@@ -508,17 +508,7 @@ class _Page4WidgetState extends State<Page4Widget> {
                                               ),
                                         ),
                                         Text(
-                                          '${valueOrDefault<String>(
-                                            FFAppState()
-                                                .currencyList
-                                                .where((e) =>
-                                                    e.code ==
-                                                    page4StacksRecord.currency)
-                                                .toList()
-                                                .firstOrNull
-                                                ?.symbol,
-                                            '\$',
-                                          )}${valueOrDefault<String>(
+                                          '${FFAppState().currencyList.where((e) => e.code == page4StacksRecord.currency).toList().firstOrNull?.symbol}${valueOrDefault<String>(
                                             formatNumber(
                                               functions.add(
                                                   containerParticipantsRecordList
@@ -1523,6 +1513,137 @@ class _Page4WidgetState extends State<Page4Widget> {
                                             color: FlutterFlowTheme.of(context)
                                                 .alternate,
                                           ),
+                                          SelectionArea(
+                                              child: Text(
+                                            columnParticipantsRecord
+                                                .reference.id,
+                                            style: FlutterFlowTheme.of(context)
+                                                .bodyMedium
+                                                .override(
+                                                  font: GoogleFonts.inter(
+                                                    fontWeight:
+                                                        FlutterFlowTheme.of(
+                                                                context)
+                                                            .bodyMedium
+                                                            .fontWeight,
+                                                    fontStyle:
+                                                        FlutterFlowTheme.of(
+                                                                context)
+                                                            .bodyMedium
+                                                            .fontStyle,
+                                                  ),
+                                                  letterSpacing: 0.0,
+                                                  fontWeight:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontWeight,
+                                                  fontStyle:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontStyle,
+                                                ),
+                                          )),
+                                          SelectionArea(
+                                              child: Text(
+                                            valueOrDefault<String>(
+                                              columnParticipantsRecord
+                                                  .stackId?.id,
+                                              'dddd',
+                                            ),
+                                            style: FlutterFlowTheme.of(context)
+                                                .bodyMedium
+                                                .override(
+                                                  font: GoogleFonts.inter(
+                                                    fontWeight:
+                                                        FlutterFlowTheme.of(
+                                                                context)
+                                                            .bodyMedium
+                                                            .fontWeight,
+                                                    fontStyle:
+                                                        FlutterFlowTheme.of(
+                                                                context)
+                                                            .bodyMedium
+                                                            .fontStyle,
+                                                  ),
+                                                  letterSpacing: 0.0,
+                                                  fontWeight:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontWeight,
+                                                  fontStyle:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontStyle,
+                                                ),
+                                          )),
+                                          Text(
+                                            columnParticipantsRecord
+                                                .stripeAccountId,
+                                            style: FlutterFlowTheme.of(context)
+                                                .bodyMedium
+                                                .override(
+                                                  font: GoogleFonts.inter(
+                                                    fontWeight:
+                                                        FlutterFlowTheme.of(
+                                                                context)
+                                                            .bodyMedium
+                                                            .fontWeight,
+                                                    fontStyle:
+                                                        FlutterFlowTheme.of(
+                                                                context)
+                                                            .bodyMedium
+                                                            .fontStyle,
+                                                  ),
+                                                  letterSpacing: 0.0,
+                                                  fontWeight:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontWeight,
+                                                  fontStyle:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontStyle,
+                                                ),
+                                          ),
+                                          SelectionArea(
+                                              child: Text(
+                                            columnParticipantsRecord
+                                                .paymentLinksend
+                                                .toString(),
+                                            style: FlutterFlowTheme.of(context)
+                                                .bodyMedium
+                                                .override(
+                                                  font: GoogleFonts.inter(
+                                                    fontWeight:
+                                                        FlutterFlowTheme.of(
+                                                                context)
+                                                            .bodyMedium
+                                                            .fontWeight,
+                                                    fontStyle:
+                                                        FlutterFlowTheme.of(
+                                                                context)
+                                                            .bodyMedium
+                                                            .fontStyle,
+                                                  ),
+                                                  letterSpacing: 0.0,
+                                                  fontWeight:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontWeight,
+                                                  fontStyle:
+                                                      FlutterFlowTheme.of(
+                                                              context)
+                                                          .bodyMedium
+                                                          .fontStyle,
+                                                ),
+                                          )),
                                         ].divide(SizedBox(height: 10.0)),
                                       );
                                     }).divide(SizedBox(height: 20.0)),

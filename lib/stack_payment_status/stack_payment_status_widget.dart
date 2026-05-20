@@ -6,7 +6,6 @@ import '/flutter_flow/custom_functions.dart' as functions;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/percent_indicator.dart';
-import 'package:provider/provider.dart';
 import 'stack_payment_status_model.dart';
 export 'stack_payment_status_model.dart';
 
@@ -48,8 +47,6 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
 
   @override
   Widget build(BuildContext context) {
-    context.watch<FFAppState>();
-
     return StreamBuilder<List<StacksRecord>>(
       stream: queryStacksRecord(
         queryBuilder: (stacksRecord) => stacksRecord.where(
@@ -77,10 +74,6 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
           );
         }
         List<StacksRecord> stackPaymentStatusStacksRecordList = snapshot.data!;
-        // Return an empty Container when the item does not exist.
-        if (snapshot.data!.isEmpty) {
-          return Container();
-        }
         final stackPaymentStatusStacksRecord =
             stackPaymentStatusStacksRecordList.isNotEmpty
                 ? stackPaymentStatusStacksRecordList.first
@@ -313,23 +306,14 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                                           ),
                                                     ),
                                                     Text(
-                                                      '${valueOrDefault<String>(
-                                                        FFAppState()
-                                                            .currencyList
-                                                            .where((e) =>
-                                                                e.code ==
-                                                                e.symbol)
-                                                            .toList()
-                                                            .firstOrNull
-                                                            ?.symbol,
-                                                        '\$',
-                                                      )}${formatNumber(
+                                                      '${formatNumber(
                                                         stackPaymentStatusStacksRecord
                                                             ?.totalAmount,
                                                         formatType:
                                                             FormatType.decimal,
                                                         decimalType: DecimalType
                                                             .automatic,
+                                                        currency: '',
                                                       )}',
                                                       style: FlutterFlowTheme
                                                               .of(context)
@@ -441,17 +425,7 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                                             snapshot.data!;
 
                                                         return Text(
-                                                          '${valueOrDefault<String>(
-                                                            FFAppState()
-                                                                .currencyList
-                                                                .where((e) =>
-                                                                    e.code ==
-                                                                    e.symbol)
-                                                                .toList()
-                                                                .firstOrNull
-                                                                ?.symbol,
-                                                            '\$',
-                                                          )}${formatNumber(
+                                                          '${formatNumber(
                                                             functions.add(
                                                                 textParticipantsRecordList
                                                                     .map((e) =>
@@ -463,6 +437,7 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                                             decimalType:
                                                                 DecimalType
                                                                     .commaDecimal,
+                                                            currency: '',
                                                           )}',
                                                           style: FlutterFlowTheme
                                                                   .of(context)
@@ -868,68 +843,63 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                         final listViewParticipantsRecord =
                                             listViewParticipantsRecordList[
                                                 listViewIndex];
-                                        return Container(
-                                          width: double.infinity,
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                blurRadius: 4.0,
-                                                color: Color(0x1A000000),
-                                                offset: Offset(
-                                                  0.0,
-                                                  1.0,
-                                                ),
-                                                spreadRadius: 0.0,
-                                              )
-                                            ],
-                                            borderRadius:
-                                                BorderRadius.circular(8.0),
-                                            border: Border.all(
-                                              color:
-                                                  FlutterFlowTheme.of(context)
-                                                      .alternate,
+                                        return Padding(
+                                          padding:
+                                              EdgeInsetsDirectional.fromSTEB(
+                                                  0.0, 0.0, 0.0, 6.0),
+                                          child: Container(
+                                            width: double.infinity,
+                                            height: 58.0,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  blurRadius: 4.0,
+                                                  color: Color(0x1A000000),
+                                                  offset: Offset(
+                                                    0.0,
+                                                    1.0,
+                                                  ),
+                                                  spreadRadius: 0.0,
+                                                )
+                                              ],
+                                              borderRadius:
+                                                  BorderRadius.circular(8.0),
+                                              border: Border.all(
+                                                color:
+                                                    FlutterFlowTheme.of(context)
+                                                        .alternate,
+                                              ),
                                             ),
-                                          ),
-                                          child: Padding(
-                                            padding: EdgeInsets.all(16.0),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.max,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Padding(
-                                                  padding: EdgeInsetsDirectional
-                                                      .fromSTEB(16.0, 16.0,
-                                                          16.0, 16.0),
-                                                  child: Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.max,
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      Text(
-                                                        listViewParticipantsRecord
-                                                            .displayName,
-                                                        style:
-                                                            FlutterFlowTheme.of(
-                                                                    context)
-                                                                .bodyLarge
-                                                                .override(
-                                                                  font:
-                                                                      GoogleFonts
-                                                                          .inter(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w600,
-                                                                    fontStyle: FlutterFlowTheme.of(
-                                                                            context)
-                                                                        .bodyLarge
-                                                                        .fontStyle,
-                                                                  ),
-                                                                  letterSpacing:
-                                                                      0.0,
+                                            child: Padding(
+                                              padding: EdgeInsets.all(16.0),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.max,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Padding(
+                                                    padding:
+                                                        EdgeInsetsDirectional
+                                                            .fromSTEB(16.0, 0.0,
+                                                                16.0, 0.0),
+                                                    child: Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.max,
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .spaceBetween,
+                                                      children: [
+                                                        Text(
+                                                          listViewParticipantsRecord
+                                                              .displayName,
+                                                          style: FlutterFlowTheme
+                                                                  .of(context)
+                                                              .bodyLarge
+                                                              .override(
+                                                                font:
+                                                                    GoogleFonts
+                                                                        .inter(
                                                                   fontWeight:
                                                                       FontWeight
                                                                           .w600,
@@ -938,30 +908,51 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                                                       .bodyLarge
                                                                       .fontStyle,
                                                                 ),
-                                                      ),
-                                                      Spacer(),
-                                                      if (listViewParticipantsRecord
-                                                              .paidStatus ==
-                                                          true)
-                                                        Row(
-                                                          mainAxisSize:
-                                                              MainAxisSize.max,
-                                                          children: [
-                                                            Icon(
-                                                              Icons
-                                                                  .check_rounded,
-                                                              color: Color(
-                                                                  0xFF16A149),
-                                                              size: 16.0,
-                                                            ),
-                                                            Text(
-                                                              'Paid',
-                                                              style: FlutterFlowTheme
-                                                                      .of(context)
-                                                                  .bodyMedium
-                                                                  .override(
-                                                                    font: GoogleFonts
-                                                                        .inter(
+                                                                letterSpacing:
+                                                                    0.0,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w600,
+                                                                fontStyle: FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .bodyLarge
+                                                                    .fontStyle,
+                                                              ),
+                                                        ),
+                                                        Spacer(),
+                                                        if (listViewParticipantsRecord
+                                                                .paidStatus ==
+                                                            true)
+                                                          Row(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .max,
+                                                            children: [
+                                                              Icon(
+                                                                Icons
+                                                                    .check_rounded,
+                                                                color: Color(
+                                                                    0xFF16A149),
+                                                                size: 16.0,
+                                                              ),
+                                                              Text(
+                                                                'Paid',
+                                                                style: FlutterFlowTheme.of(
+                                                                        context)
+                                                                    .bodyMedium
+                                                                    .override(
+                                                                      font: GoogleFonts
+                                                                          .inter(
+                                                                        fontWeight:
+                                                                            FontWeight.w600,
+                                                                        fontStyle: FlutterFlowTheme.of(context)
+                                                                            .bodyMedium
+                                                                            .fontStyle,
+                                                                      ),
+                                                                      color: Color(
+                                                                          0xFF2E7D32),
+                                                                      letterSpacing:
+                                                                          0.0,
                                                                       fontWeight:
                                                                           FontWeight
                                                                               .w600,
@@ -970,34 +961,36 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                                                           .bodyMedium
                                                                           .fontStyle,
                                                                     ),
-                                                                    color: Color(
-                                                                        0xFF2E7D32),
-                                                                    letterSpacing:
-                                                                        0.0,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w600,
+                                                              ),
+                                                            ].divide(SizedBox(
+                                                                width: 4.0)),
+                                                          ),
+                                                        if (listViewParticipantsRecord
+                                                                .paidStatus ==
+                                                            false)
+                                                          Text(
+                                                            'Not Paid',
+                                                            style: FlutterFlowTheme
+                                                                    .of(context)
+                                                                .bodyMedium
+                                                                .override(
+                                                                  font:
+                                                                      GoogleFonts
+                                                                          .inter(
+                                                                    fontWeight: FlutterFlowTheme.of(
+                                                                            context)
+                                                                        .bodyMedium
+                                                                        .fontWeight,
                                                                     fontStyle: FlutterFlowTheme.of(
                                                                             context)
                                                                         .bodyMedium
                                                                         .fontStyle,
                                                                   ),
-                                                            ),
-                                                          ].divide(SizedBox(
-                                                              width: 4.0)),
-                                                        ),
-                                                      if (listViewParticipantsRecord
-                                                              .paidStatus ==
-                                                          false)
-                                                        Text(
-                                                          'Not Paid',
-                                                          style: FlutterFlowTheme
-                                                                  .of(context)
-                                                              .bodyMedium
-                                                              .override(
-                                                                font:
-                                                                    GoogleFonts
-                                                                        .inter(
+                                                                  color: FlutterFlowTheme.of(
+                                                                          context)
+                                                                      .secondaryText,
+                                                                  letterSpacing:
+                                                                      0.0,
                                                                   fontWeight: FlutterFlowTheme.of(
                                                                           context)
                                                                       .bodyMedium
@@ -1007,25 +1000,12 @@ class _StackPaymentStatusWidgetState extends State<StackPaymentStatusWidget> {
                                                                       .bodyMedium
                                                                       .fontStyle,
                                                                 ),
-                                                                color: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .secondaryText,
-                                                                letterSpacing:
-                                                                    0.0,
-                                                                fontWeight: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .fontWeight,
-                                                                fontStyle: FlutterFlowTheme.of(
-                                                                        context)
-                                                                    .bodyMedium
-                                                                    .fontStyle,
-                                                              ),
-                                                        ),
-                                                    ],
+                                                          ),
+                                                      ],
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         );

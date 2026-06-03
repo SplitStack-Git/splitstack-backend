@@ -1,5 +1,5 @@
 .vercel
-.env*.local
+.env*
 firebase-service-account.json
 firebase-service-account.b64
 node_modules/

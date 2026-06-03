@@ -43,6 +43,7 @@ function formatPhone(phone, defaultCountry = "AU") {
   }
 }
 
+
 /* ================================
    WEBHOOK HANDLER
 ================================ */
@@ -94,15 +95,16 @@ module.exports = async (req, res) => {
     const participantRef = db.collection("participants").doc(participant_id);
     const participantSnap = await participantRef.get();
 
+
     if (!participantSnap.exists) {
       console.log("❌ Participant not found");
       return res.json({ received: true });
     }
 
     const participant = participantSnap.data();
-console.log("🔥 participant_id:", participant_id);
-console.log("🔥 participant name:", participant.display_name || participant.name);
-console.log("🔥 participant phone:", participant.phone);
+    console.log("🔥 participant_id:", participant_id);
+    console.log("🔥 participant name:", participant.display_name || participant.name);
+    console.log("🔥 participant phone:", participant.phone);
 
     /* ================================
        🔒 DUPLICATE PROTECTION

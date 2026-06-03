@@ -3,73 +3,36 @@ import admin from "firebase-admin";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-/* ================================
-   FIREBASE INIT
-================================ */
+/* ── Firebase init ─────────────────────────────────────────── */
 
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(
     Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_B64, "base64").toString("utf8")
   );
-
   serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
-
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
 }
 
 const db = admin.firestore();
 
-/* ================================
-   🌍 GLOBAL PHONE FORMATTER (FIXED)
-   Handles ANY format → E.164
-================================ */
+/* ── Phone → E.164 ─────────────────────────────────────────── */
 
 function formatPhone(phone, country = "AU") {
   if (!phone) return null;
-
-  // Remove EVERYTHING except digits
-  let cleaned = phone.replace(/\D/g, "");
-
-  // If already includes country code (e.g. 614..., 1415...)
-  if (cleaned.startsWith("61") || cleaned.startsWith("1")) {
-    return "+" + cleaned;
-  }
-
-  switch (country) {
-    case "AU":
-      if (cleaned.startsWith("0")) cleaned = cleaned.slice(1);
-      return "+61" + cleaned;
-
-    case "US":
-    case "CA":
-      return "+1" + cleaned;
-
-    case "GB":
-      if (cleaned.startsWith("0")) cleaned = cleaned.slice(1);
-      return "+44" + cleaned;
-
-    case "NZ":
-      if (cleaned.startsWith("0")) cleaned = cleaned.slice(1);
-      return "+64" + cleaned;
-
-    case "IE":
-      if (cleaned.startsWith("0")) cleaned = cleaned.slice(1);
-      return "+353" + cleaned;
-
-    default:
-      return "+" + cleaned;
-  }
+  let d = phone.replace(/\D/g, "");
+  const prefixes = { AU: "61", US: "1", CA: "1", GB: "44", NZ: "64", IE: "353" };
+  const cc = prefixes[country];
+  if (cc && d.startsWith(cc)) return "+" + d;
+  if (d.startsWith("0")) d = d.slice(1);
+  return cc ? `+${cc}${d}` : `+${d}`;
 }
 
-/* ================================
-   HANDLER
-================================ */
+/* ── Handler ───────────────────────────────────────────────── */
 
 export default async function handler(req, res) {
-  console.log("🔥 SUBMIT ONBOARDING HIT");
-  console.log("BODY:", req.body);
+  if (req.method !== "POST") {
+    return res.status(405).json({ status: "error", message: "Method not allowed" });
+  }
 
   try {
     const {
@@ -84,46 +47,31 @@ export default async function handler(req, res) {
       onbCity,
       onbState,
       onbPostcode,
-      onbCountry,
+      onbCountry = "AU",
       onbAccountHolderName,
-      onbBsb,
-      onbAccountNumber,
-      onbUsage,
+      onbRoutingNumber,   // BSB (AU), ABA (US), transit-institution (CA), sort code (GB); omit for NZ/IE
+      onbAccountNumber,   // Full account number; for IE send the full IBAN here
     } = req.body;
 
     if (!userId) {
-      return res.status(400).json({
-        status: "error",
-        message: "Missing userId",
-      });
+      return res.status(400).json({ status: "error", message: "Missing userId" });
     }
 
+    /* 1. Ensure user doc exists in Firestore */
     const userRef = db.collection("users").doc(userId);
+    await userRef.set(
+      { uid: userId, email: onbEmail || null, updated_at: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true }
+    );
 
-    /* ================================
-       🔥 HARD GUARANTEE USER EXISTS
-    ================================ */
-
-    await userRef.set({
-      uid: userId,
-      email: onbEmail || null,
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
-
-    // 🔥 ALWAYS RELOAD AFTER WRITE (CRITICAL FIX)
-    const freshUserSnap = await userRef.get();
-    let stripeAccountId = freshUserSnap.data().stripe_account_id || null;
-
-    /* ================================
-       CREATE STRIPE ACCOUNT IF NEEDED
-    ================================ */
+    /* 2. Get or create Stripe Custom account */
+    const userSnap = await userRef.get();
+    let stripeAccountId = userSnap.data()?.stripe_account_id || null;
 
     if (!stripeAccountId) {
-      console.log("🔥 Creating Stripe account...");
-
       const account = await stripe.accounts.create({
         type: "custom",
-        country: onbCountry || "AU",
+        country: onbCountry,
         email: onbEmail,
         business_type: "individual",
         capabilities: {
@@ -131,128 +79,119 @@ export default async function handler(req, res) {
           transfers: { requested: true },
         },
       });
-
       stripeAccountId = account.id;
-
-      console.log("✅ Stripe account created:", stripeAccountId);
-
-      await userRef.set({
-        stripe_account_id: stripeAccountId,
-      }, { merge: true });
+      await userRef.set({ stripe_account_id: stripeAccountId }, { merge: true });
     }
 
-    /* ================================
-       🔥 SYNC ORGANISER PARTICIPANTS
-    ================================ */
-
+    /* 3. Sync stripe_account_id to any organiser participant docs */
     const participantsSnap = await db
       .collection("participants")
       .where("userID", "==", userId)
       .where("isOrganiser", "==", true)
       .get();
 
-    console.log("👀 Organiser docs found:", participantsSnap.size);
-
     for (const doc of participantsSnap.docs) {
-      await doc.ref.set({
-        stripe_account_id: stripeAccountId,
-      }, { merge: true });
+      await doc.ref.set({ stripe_account_id: stripeAccountId }, { merge: true });
     }
 
-    /* ================================
-       FORMAT PHONE (FIXED)
-    ================================ */
-
-    const formattedPhone = formatPhone(onbPhone, onbCountry);
-
-    console.log("📞 Formatted phone:", formattedPhone);
-
-    /* ================================
-       STRIPE UPDATE
-    ================================ */
-
+    /* 4. Build Stripe update payload */
+    const dob = new Date(onbDob);
     const updatePayload = {
       business_type: "individual",
-
       individual: {
         first_name: onbFirstName,
         last_name: onbLastName,
         email: onbEmail,
-        phone: formattedPhone,
-
+        phone: formatPhone(onbPhone, onbCountry),
         dob: {
-          day: new Date(onbDob).getDate(),
-          month: new Date(onbDob).getMonth() + 1,
-          year: new Date(onbDob).getFullYear(),
+          day: dob.getUTCDate(),
+          month: dob.getUTCMonth() + 1,
+          year: dob.getUTCFullYear(),
         },
-
         address: {
           line1: onbStreet1,
           line2: onbStreet2 || "",
           city: onbCity,
           state: onbState,
           postal_code: onbPostcode,
-          country: onbCountry || "AU",
+          country: onbCountry,
         },
       },
-
       business_profile: {
         mcc: "5734",
         url: "https://splitstack.app",
         product_description:
           "SplitStack enables users to split bills and collect payments from friends",
       },
-
       tos_acceptance: {
         date: Math.floor(Date.now() / 1000),
-        ip:
-          req.headers["x-forwarded-for"] ||
-          req.socket?.remoteAddress ||
-          "0.0.0.0",
+        ip: req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "0.0.0.0",
       },
     };
 
-    /* ================================
-       BANK DETAILS (AU ONLY)
-    ================================ */
+    /* 5. Bank account — per-country schema
+     *
+     *  AU  → routing_number = BSB (e.g. "110-000"),        account_number
+     *  US  → routing_number = ABA routing (9 digits),      account_number
+     *  CA  → routing_number = transit-institution          account_number
+     *          (e.g. "11000-003": 5-digit transit + 3-digit institution)
+     *  GB  → routing_number = sort code (e.g. "108800"),   account_number
+     *  NZ  → no routing_number; full NZ bank account       account_number
+     *          (16 digits incl. bank/branch prefix)
+     *  IE  → account_number = full IBAN (e.g. "IE29AIBK93115212345678")
+     *          no separate routing_number needed
+     *
+     *  Flutter fields expected:
+     *    onbAccountHolderName  — all countries
+     *    onbAccountNumber      — all countries
+     *    onbRoutingNumber      — AU / US / CA / GB  (BSB, ABA, transit, sort code)
+     *                            send null/empty for NZ and IE
+     */
 
-    if (onbCountry === "AU") {
-      updatePayload.external_account = {
+    const BANK_CONFIG = {
+      AU: { currency: "aud", useRouting: true },
+      US: { currency: "usd", useRouting: true },
+      CA: { currency: "cad", useRouting: true },
+      GB: { currency: "gbp", useRouting: true },
+      NZ: { currency: "nzd", useRouting: false },
+      IE: { currency: "eur", useRouting: false, ibanAsAccount: true },
+    };
+
+    const bankCfg = BANK_CONFIG[onbCountry];
+
+    if (bankCfg && onbAccountNumber) {
+      const externalAccount = {
         object: "bank_account",
-        country: "AU",
-        currency: "aud",
+        country: onbCountry,
+        currency: bankCfg.currency,
         account_holder_name: onbAccountHolderName,
         account_holder_type: "individual",
-        routing_number: onbBsb,
-        account_number: onbAccountNumber,
+        account_number: onbAccountNumber, // IBAN for IE, full acct for others
       };
+
+      if (bankCfg.useRouting && onbRoutingNumber) {
+        externalAccount.routing_number = onbRoutingNumber;
+      }
+
+      updatePayload.external_account = externalAccount;
     }
 
     await stripe.accounts.update(stripeAccountId, updatePayload);
 
-    /* ================================
-       FINAL USER UPDATE
-    ================================ */
+    /* 6. Mark onboarding complete in Firestore */
+    await userRef.set(
+      {
+        stripe_onboarding_complete: true,
+        stripe_details_submitted: true,
+        updated_at: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
 
-    await userRef.set({
-      stripe_onboarding_complete: true,
-      stripe_details_submitted: true,
-      onb_usage: onbUsage,
-      updated_at: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
-
-    console.log("✅ Onboarding complete");
-
-    return res.status(200).json({
-      status: "success",
-    });
+    return res.status(200).json({ status: "success", stripe_account_id: stripeAccountId });
 
   } catch (error) {
-    console.error("❌ Onboarding error:", error);
-
-    return res.status(500).json({
-      status: "error",
-      message: error.message,
-    });
+    console.error("Onboarding error:", error);
+    return res.status(500).json({ status: "error", message: error.message });
   }
 }

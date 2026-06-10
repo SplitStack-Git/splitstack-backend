@@ -30,31 +30,55 @@ const db = admin.firestore();
 
 function formatPhone(phone, country = "AU") {
   if (!phone) return null;
-  let d = phone.replace(/\D/g, "");
-  const prefixes = { AU: "61", US: "1", CA: "1", GB: "44", NZ: "64" };
-  const cc = prefixes[country];
-  if (cc && d.startsWith(cc)) return "+" + d;
-  if (d.startsWith("0")) d = d.slice(1);
-  return cc ? `+${cc}${d}` : `+${d}`;
+
+  const digits = phone.replace(/\D/g, "");
+
+  switch (country) {
+    case "US":
+    case "CA":
+      if (digits.length === 10) {
+        return `+1${digits}`;
+      }
+
+      if (digits.length === 11 && digits.startsWith("1")) {
+        return `+${digits}`;
+      }
+
+      throw new Error("Invalid US/CA phone number");
+
+    case "AU":
+      if (digits.length === 9) {
+        return `+61${digits}`;
+      }
+
+      if (digits.length === 10 && digits.startsWith("0")) {
+        return `+61${digits.substring(1)}`;
+      }
+
+      throw new Error("Invalid AU phone number");
+
+    default:
+      return `+${digits}`;
+  }
 }
 
 /* ── Country requirements reference ────────────────────────────
- *
- *  AU  → individual.id_number (TFN)
- *        Without it: charges_enabled=false, ID doc required
- *
- *  NZ  → individual.verification.document (passport / driver licence)
- *        No id_number — document upload via /api/upload-identity-document
- *
- *  US  → individual.ssn_last_4  (required to enable charges)
- *        individual.id_number   (full SSN — clears document requirement)
- *
- *  CA  → individual.id_number   (SIN — required)
- *        individual.job_title   (required by Stripe CA)
- *
- *  GB  → No extra fields needed
- *
- * ─────────────────────────────────────────────────────────────*/
+*
+*  AU  → individual.id_number (TFN)
+*        Without it: charges_enabled=false, ID doc required
+*
+*  NZ  → individual.verification.document (passport / driver licence)
+*        No id_number — document upload via /api/upload-identity-document
+*
+*  US  → individual.ssn_last_4  (required to enable charges)
+*        individual.id_number   (full SSN — clears document requirement)
+*
+*  CA  → individual.id_number   (SIN — required)
+*        individual.job_title   (required by Stripe CA)
+*
+*  GB  → No extra fields needed
+*
+* ─────────────────────────────────────────────────────────────*/
 
 /* ── Bank config ───────────────────────────────────────────── */
 
